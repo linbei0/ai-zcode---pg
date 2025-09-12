@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: ai-zcode
+server:
+  port: 8234
+  servlet:
+    context-path: /api
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.aizcode.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
