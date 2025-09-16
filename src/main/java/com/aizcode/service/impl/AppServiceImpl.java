@@ -19,7 +19,7 @@ import com.aizcode.model.vo.UserVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.aizcode.model.entity.App;
-import com.aizcode.service.mapper.AppMapper;
+import com.aizcode.mapper.AppMapper;
 import com.aizcode.service.AppService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
