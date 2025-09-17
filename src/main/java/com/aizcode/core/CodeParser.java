@@ -1,4 +1,4 @@
-package com.aizcode.ai;
+package com.aizcode.core;
 
 import com.aizcode.ai.model.HtmlCodeResult;
 import com.aizcode.ai.model.MultiFileCodeResult;

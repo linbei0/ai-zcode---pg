@@ -2,6 +2,7 @@ package com.aizcode.ai;
 
 import com.aizcode.ai.model.HtmlCodeResult;
 import com.aizcode.ai.model.MultiFileCodeResult;
+import com.aizcode.core.CodeParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
