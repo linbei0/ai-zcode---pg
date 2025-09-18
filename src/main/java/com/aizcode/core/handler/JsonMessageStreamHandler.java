@@ -46,6 +46,11 @@ public class JsonMessageStreamHandler {
         // 用于跟踪已经见过的工具ID，判断是否是第一次调用
         Set<String> seenToolIds = new HashSet<>();
         return originFlux
+                .map(chunk -> {
+                    // 解析每个 JSON 消息块
+                    return handleJsonMessageChunk(chunk, chatHistoryStringBuilder, seenToolIds);
+                })
+                .filter(StrUtil::isNotEmpty) // 过滤空字串
                 .doOnComplete(() -> {
                     // 流式响应完成后，添加 AI 消息到对话历史
                     String aiResponse = chatHistoryStringBuilder.toString();
