@@ -1,5 +1,6 @@
 package com.aizcode.service;
 
+import com.aizcode.model.dto.app.AppAddRequest;
 import com.aizcode.model.dto.app.AppQueryRequest;
 import com.aizcode.model.entity.User;
 import com.aizcode.model.vo.AppVO;
@@ -16,6 +17,14 @@ import java.util.List;
  * @author jiang
  */
 public interface AppService extends IService<App> {
+    /**
+     * 创建应用
+     * @param appAddRequest
+     * @param loginUser
+     * @return
+     */
+    Long createApp(AppAddRequest appAddRequest, User loginUser);
+
     /**
      * 获取应用脱敏数据
      * @param app
