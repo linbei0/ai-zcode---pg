@@ -1,6 +1,6 @@
 package com.aizcode.ai;
 
-import com.aizcode.ai.tools.FileWriteTool;
+import com.aizcode.ai.tools.*;
 import com.aizcode.exception.BusinessException;
 import com.aizcode.exception.ErrorCode;
 import com.aizcode.model.enums.CodeGenTypeEnum;
@@ -41,6 +41,8 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * AI 服务实例缓存
@@ -91,14 +93,15 @@ public class AiCodeGeneratorServiceFactory {
                 .maxMessages(50)
                 .build();
         // 从数据库加载历史对话到记忆中
-        chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 20);
+        chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 50);
         // 根据代码生成类型选择不同的模型配置
         return switch (codeGenType) {
+            // Vue 项目生成使用推理模型
             // Vue 项目生成使用推理模型
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getAllTools())
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                     ))
