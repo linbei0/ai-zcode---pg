@@ -1,5 +1,7 @@
 package com.aizcode.ai;
 
+import com.aizcode.ai.guardrail.PromptSafetyInputGuardrail;
+import com.aizcode.ai.guardrail.RetryOutputGuardrail;
 import com.aizcode.ai.tools.*;
 import com.aizcode.exception.BusinessException;
 import com.aizcode.exception.ErrorCode;
@@ -104,6 +106,10 @@ public class AiCodeGeneratorServiceFactory {
                         .streamingChatModel(reasoningStreamingChatModel)
                         .chatMemoryProvider(memoryId -> chatMemory)
                         .tools(toolManager.getAllTools())
+                        .maxSequentialToolsInvocations(20)  // 最多连续调用 20 次工具
+                        .inputGuardrails(new PromptSafetyInputGuardrail())  // 添加输入护轨
+//                        .outputGuardrails(new RetryOutputGuardrail())   // 添加输出护轨
+                        // 处理工具调用幻觉问题
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                         ))
@@ -115,6 +121,9 @@ public class AiCodeGeneratorServiceFactory {
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
+                        .maxSequentialToolsInvocations(20)  // 最多连续调用 20 次工具
+                        .inputGuardrails(new PromptSafetyInputGuardrail())  // 添加输入护轨
+//                        .outputGuardrails(new RetryOutputGuardrail())   // 添加输出护轨
                         .chatMemory(chatMemory)
                         .build();
             }

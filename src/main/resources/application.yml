@@ -35,6 +35,14 @@ springdoc:
   group-configs:
     - group: 'default'
       packages-to-scan: com.aizcode.controller
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
 # knife4j
 knife4j:
   enable: true
