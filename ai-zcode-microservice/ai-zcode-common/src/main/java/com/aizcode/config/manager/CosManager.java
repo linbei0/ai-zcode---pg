@@ -1,4 +1,4 @@
-package com.aizcode.manager;
+package com.aizcode.config.manager;
 
 import com.aizcode.config.CosClientConfig;
 import com.qcloud.cos.COSClient;
