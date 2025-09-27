@@ -30,7 +30,8 @@ import java.io.File;
  */
 @Service
 @Slf4j
-public class AiCodeGeneratorFacade {
+public class
+AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;

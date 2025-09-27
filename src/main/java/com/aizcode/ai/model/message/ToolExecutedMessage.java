@@ -1,4 +1,4 @@
-package com.aizcode.ai.message;
+package com.aizcode.ai.model.message;
 
 import dev.langchain4j.service.tool.ToolExecution;
 import lombok.Data;

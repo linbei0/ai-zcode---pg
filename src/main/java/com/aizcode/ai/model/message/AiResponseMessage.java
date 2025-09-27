@@ -1,4 +1,4 @@
-package com.aizcode.ai.message;
+package com.aizcode.ai.model.message;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
