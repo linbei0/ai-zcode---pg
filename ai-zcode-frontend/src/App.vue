@@ -12,6 +12,13 @@ import BasicLayout from '@/layouts/BasicLayout.vue'
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  min-height: 100vh;
+  background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+  background-attachment: fixed;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -21,9 +28,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  min-height: 100vh;
+  background: transparent;
 }
 
-html {
-  overflow-x: hidden;
+#app {
+  min-height: 100vh;
+  background: transparent;
 }
 </style>

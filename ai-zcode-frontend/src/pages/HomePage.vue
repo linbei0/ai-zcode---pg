@@ -183,44 +183,46 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 快捷按钮 -->
-      <div class="quick-actions">
-        <a-button
-          type="default"
-          @click="
-            setPrompt(
-              '创建一个现代化的个人博客网站，包含文章列表、详情页、分类标签、搜索功能、评论系统和个人简介页面。采用简洁的设计风格，支持响应式布局，文章支持Markdown格式，首页展示最新文章和热门推荐。',
-            )
-          "
-          >个人博客网站</a-button
-        >
-        <a-button
-          type="default"
-          @click="
-            setPrompt(
-              '设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。',
-            )
-          "
-          >企业官网</a-button
-        >
-        <a-button
-          type="default"
-          @click="
-            setPrompt(
-              '构建一个功能完整的在线商城，包含商品展示、购物车、用户注册登录、订单管理、支付结算等功能。设计现代化的商品卡片布局，支持商品搜索筛选、用户评价、优惠券系统和会员积分功能。',
-            )
-          "
-          >在线商城</a-button
-        >
-        <a-button
-          type="default"
-          @click="
-            setPrompt(
-              '制作一个精美的作品展示网站，适合设计师、摄影师、艺术家等创作者。包含作品画廊、项目详情页、个人简历、联系方式等模块。采用瀑布流或网格布局展示作品，支持图片放大预览和作品分类筛选。',
-            )
-          "
-          >作品展示网站</a-button
-        >
+      <!-- 快捷模板 -->
+      <div class="quick-templates">
+        <div class="template-buttons">
+          <a-button 
+            class="template-btn" 
+            @click="setPrompt('创建一个现代化的企业官网，包含首页、关于我们、产品服务、新闻资讯、联系我们等页面，采用蓝色商务风格，响应式设计。')"
+          >
+            🏢 企业官网
+          </a-button>
+          <a-button 
+            class="template-btn" 
+            @click="setPrompt('开发一个在线商城网站，包含商品展示、购物车、用户登录、订单管理、支付功能，现代化电商设计风格。')"
+          >
+            🛒 在线商城
+          </a-button>
+          <a-button 
+            class="template-btn" 
+            @click="setPrompt('制作一个个人作品集网站，包含作品展示、项目介绍、个人简历、联系方式，极简设计风格突出作品展示。')"
+          >
+            🎨 作品展示
+          </a-button>
+          <a-button 
+            class="template-btn" 
+            @click="setPrompt('建设一个个人博客网站，包含文章发布、分类管理、评论系统、搜索功能，简洁优雅的阅读体验设计。')"
+          >
+            📝 个人博客
+          </a-button>
+          <a-button 
+            class="template-btn" 
+            @click="setPrompt('创建一个餐厅官网，包含菜单展示、在线预订、店铺介绍、联系信息，温馨美食主题设计风格。')"
+          >
+            🍽️ 餐厅官网
+          </a-button>
+          <a-button 
+            class="template-btn" 
+            @click="setPrompt('开发一个教育培训网站，包含课程展示、师资介绍、在线报名、学员评价，专业教育机构设计风格。')"
+          >
+            📚 教育培训
+          </a-button>
+        </div>
       </div>
 
       <!-- 我的作品 -->
@@ -281,16 +283,12 @@ onMounted(() => {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 8%, #e2e8f0 20%, #cbd5e1 100%),
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+  background: transparent;
   position: relative;
   overflow: hidden;
 }
 
-/* 科技感网格背景 */
+/* 科技感装饰元素 */
 #homePage::before {
   content: '';
   position: absolute;
@@ -299,17 +297,11 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   background-image:
-    linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px);
-  background-size:
-    100px 100px,
-    100px 100px,
-    20px 20px,
-    20px 20px;
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
   pointer-events: none;
-  animation: gridFloat 20s ease-in-out infinite;
+  animation: floatingOrbs 15s ease-in-out infinite;
 }
 
 /* 动态光效 */
@@ -323,23 +315,23 @@ onMounted(() => {
   background:
     radial-gradient(
       600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(59, 130, 246, 0.08) 0%,
-      rgba(139, 92, 246, 0.06) 40%,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 40%,
       transparent 80%
-    ),
-    linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.04) 50%, transparent 70%),
-    linear-gradient(-45deg, transparent 30%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
+    );
   pointer-events: none;
   animation: lightPulse 8s ease-in-out infinite alternate;
 }
 
-@keyframes gridFloat {
-  0%,
-  100% {
-    transform: translate(0, 0);
+@keyframes floatingOrbs {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
   }
-  50% {
-    transform: translate(5px, 5px);
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
   }
 }
 
@@ -353,23 +345,20 @@ onMounted(() => {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 40px 20px;
   position: relative;
   z-index: 2;
   width: 100%;
   box-sizing: border-box;
 }
 
-/* 移除居中光束效果 */
-
 /* 英雄区域 */
 .hero-section {
   text-align: center;
-  padding: 80px 0 60px;
-  margin-bottom: 28px;
-  color: #1e293b;
+  padding: 100px 0 80px;
+  margin-bottom: 60px;
   position: relative;
   overflow: hidden;
 }
@@ -377,185 +366,299 @@ onMounted(() => {
 .hero-section::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(ellipse 800px 400px at center, rgba(59, 130, 246, 0.12) 0%, transparent 70%),
-    linear-gradient(45deg, transparent 30%, rgba(139, 92, 246, 0.05) 50%, transparent 70%),
-    linear-gradient(-45deg, transparent 30%, rgba(16, 185, 129, 0.04) 50%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
   animation: heroGlow 10s ease-in-out infinite alternate;
 }
 
 @keyframes heroGlow {
   0% {
     opacity: 0.6;
-    transform: scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
   100% {
     opacity: 1;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes rotate {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg);
+    transform: translate(-50%, -50%) scale(1.05);
   }
 }
 
 .hero-title {
-  font-size: 56px;
-  font-weight: 700;
-  margin: 0 0 20px;
-  line-height: 1.2;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%);
+  font-size: 64px;
+  font-weight: 800;
+  margin: 0 0 24px;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -1px;
+  letter-spacing: -2px;
   position: relative;
   z-index: 2;
-  animation: titleShimmer 3s ease-in-out infinite;
+  text-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+  animation: titleFloat 6s ease-in-out infinite;
 }
 
-@keyframes titleShimmer {
-  0%,
-  100% {
-    background-position: 0% 50%;
+@keyframes titleFloat {
+  0%, 100% {
+    transform: translateY(0);
   }
   50% {
-    background-position: 100% 50%;
+    transform: translateY(-10px);
   }
 }
 
 .hero-description {
-  font-size: 20px;
+  font-size: 24px;
   margin: 0;
-  opacity: 0.8;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.9);
   position: relative;
   z-index: 2;
+  font-weight: 300;
+  letter-spacing: 0.5px;
 }
 
 /* 输入区域 */
 .input-section {
   position: relative;
-  margin: 0 auto 24px;
-  max-width: 800px;
+  margin: 0 auto 60px;
+  max-width: 900px;
 }
 
 .prompt-input {
-  border-radius: 16px;
-  border: none;
-  font-size: 16px;
-  padding: 20px 60px 20px 20px;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  font-size: 18px;
+  padding: 24px 80px 24px 24px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.1),
+    0 8px 25px rgba(255, 255, 255, 0.1) inset;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #1e293b;
 }
 
 .prompt-input:focus {
   background: rgba(255, 255, 255, 1);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 25px 80px rgba(0, 0, 0, 0.15),
+    0 0 0 4px rgba(255, 255, 255, 0.2);
+  transform: translateY(-4px);
+}
+
+.prompt-input::placeholder {
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .input-actions {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
+  bottom: 16px;
+  right: 16px;
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-/* 快捷按钮 */
-.quick-actions {
+.input-actions .ant-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-actions .ant-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 35px rgba(79, 172, 254, 0.6);
+}
+
+/* 快捷模板区域 */
+.quick-templates {
+  margin-bottom: 60px;
+}
+
+.template-buttons {
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-bottom: 60px;
   flex-wrap: wrap;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
-.quick-actions .ant-btn {
-  border-radius: 25px;
-  padding: 8px 20px;
+.template-btn {
+  border-radius: 20px;
+  padding: 12px 20px;
   height: auto;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #475569;
   backdrop-filter: blur(15px);
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 }
 
-.quick-actions .ant-btn::before {
+.template-btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(79, 172, 254, 0.1), transparent);
   transition: left 0.5s;
 }
 
-.quick-actions .ant-btn:hover::before {
+.template-btn:hover::before {
   left: 100%;
 }
 
-.quick-actions .ant-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #3b82f6;
+.template-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(79, 172, 254, 0.4);
+  color: #4facfe;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.2);
 }
 
 /* 区域标题 */
 .section {
-  margin-bottom: 60px;
+  margin-bottom: 80px;
 }
 
 .section-title {
-  font-size: 32px;
-  font-weight: 600;
-  margin-bottom: 32px;
-  color: #1e293b;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
-/* 我的作品网格 */
-.app-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(79, 172, 254, 0.4);
 }
 
-/* 精选案例网格 */
-.featured-grid {
+/* 应用网格 */
+.app-grid, .featured-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 32px;
+  margin-bottom: 40px;
 }
 
 /* 分页 */
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: 32px;
+  margin-top: 40px;
+}
+
+.pagination-wrapper :deep(.ant-pagination) {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 16px 24px;
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-wrapper :deep(.ant-pagination-item) {
+  border: none;
+  background: transparent;
+  color: #475569;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.pagination-wrapper :deep(.ant-pagination-item:hover) {
+  background: rgba(79, 172, 254, 0.1);
+  color: #4facfe;
+}
+
+.pagination-wrapper :deep(.ant-pagination-item-active) {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  color: white;
+  border: none;
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .container {
+    max-width: 100%;
+    padding: 30px 16px;
+  }
+  
+  .template-buttons {
+    gap: 10px;
+  }
+}
+
 @media (max-width: 768px) {
+  .hero-title {
+    font-size: 42px;
+    letter-spacing: -1px;
+  }
+
+  .hero-description {
+    font-size: 18px;
+  }
+
+  .hero-section {
+    padding: 60px 0 50px;
+  }
+
+  .prompt-input {
+    font-size: 16px;
+    padding: 20px 70px 20px 20px;
+  }
+
+  .template-buttons {
+    gap: 8px;
+    max-width: 100%;
+  }
+
+  .template-btn {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+
+  .app-grid,
+  .featured-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .section-title {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 480px) {
   .hero-title {
     font-size: 32px;
   }
@@ -564,13 +667,19 @@ onMounted(() => {
     font-size: 16px;
   }
 
-  .app-grid,
-  .featured-grid {
-    grid-template-columns: 1fr;
+  .container {
+    padding: 20px 12px;
   }
 
-  .quick-actions {
-    justify-content: center;
+  .template-buttons {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .template-btn {
+    width: 200px;
+    text-align: center;
   }
 }
 </style>

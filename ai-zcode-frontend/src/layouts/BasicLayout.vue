@@ -18,13 +18,30 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 
 <style scoped>
 .basic-layout {
-  background: none;
+  background: transparent;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content {
   width: 100%;
   padding: 0;
-  background: none;
+  background: transparent;
   margin: 0;
+  flex: 1;
+  position: relative;
+}
+
+/* 确保内容区域有足够的最小高度 */
+.main-content :deep(.ant-layout-content) {
+  min-height: calc(100vh - 64px - 200px); /* 减去header和footer的高度 */
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .main-content :deep(.ant-layout-content) {
+    min-height: calc(100vh - 56px - 180px);
+  }
 }
 </style>

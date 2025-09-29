@@ -133,28 +133,151 @@ const doLogout = async () => {
 
 <style scoped>
 .header {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 48px;
+  line-height: 48px;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.header-left:hover {
+  transform: translateY(-1px);
 }
 
 .logo {
-  height: 48px;
-  width: 48px;
+  height: 32px;
+  width: 32px;
+  border-radius: 6px;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.2);
+  transition: all 0.3s;
+}
+
+.header-left:hover .logo {
+  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.3);
+  transform: scale(1.05);
 }
 
 .site-title {
   margin: 0;
   font-size: 18px;
-  color: #1890ff;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
 }
 
-.ant-menu-horizontal {
+.user-login-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-login-status .ant-avatar {
+  border: 2px solid rgba(79, 172, 254, 0.2);
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.15);
+  transition: all 0.3s;
+}
+
+.user-login-status .ant-avatar:hover {
+  border-color: rgba(79, 172, 254, 0.4);
+  box-shadow: 0 6px 18px rgba(79, 172, 254, 0.25);
+  transform: scale(1.05);
+}
+
+.user-login-status .ant-btn-primary {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 8px 24px;
+  height: auto;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+  transition: all 0.3s;
+}
+
+.user-login-status .ant-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}
+
+/* 菜单样式优化 */
+:deep(.ant-menu-horizontal) {
   border-bottom: none !important;
+  background: transparent !important;
+  line-height: 48px !important;
+}
+
+:deep(.ant-menu-item) {
+  border-radius: 12px !important;
+  margin: 0 4px !important;
+  transition: all 0.3s !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+:deep(.ant-menu-item:hover) {
+  background: rgba(79, 172, 254, 0.1) !important;
+  color: #4facfe !important;
+}
+
+:deep(.ant-menu-item-selected) {
+  background: linear-gradient(135deg, rgba(79, 172, 254, 0.15), rgba(0, 242, 254, 0.1)) !important;
+  color: #4facfe !important;
+  font-weight: 600 !important;
+}
+
+:deep(.ant-menu-item-selected::after) {
+  display: none !important;
+}
+
+/* 下拉菜单样式 */
+:deep(.ant-dropdown-menu) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+:deep(.ant-dropdown-menu-item) {
+  border-radius: 8px !important;
+  margin: 4px !important;
+  transition: all 0.3s !important;
+}
+
+:deep(.ant-dropdown-menu-item:hover) {
+  background: rgba(79, 172, 254, 0.1) !important;
+  color: #4facfe !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+  }
+  
+  .site-title {
+    font-size: 18px;
+  }
+  
+  .logo {
+    height: 44px;
+    width: 44px;
+  }
 }
 </style>
