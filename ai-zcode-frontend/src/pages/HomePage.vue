@@ -82,7 +82,7 @@ const loadMyApps = async () => {
     const res = await listMyAppVoByPage({
       pageNum: myAppsPage.current,
       pageSize: myAppsPage.pageSize,
-      sortField: 'createTime',
+      sortField: 'create_time',
       sortOrder: 'desc',
     })
 
@@ -101,7 +101,7 @@ const loadFeaturedApps = async () => {
     const res = await listGoodAppVoByPage({
       pageNum: featuredAppsPage.current,
       pageSize: featuredAppsPage.pageSize,
-      sortField: 'createTime',
+      sortField: 'create_time',
       sortOrder: 'desc',
     })
 

@@ -59,7 +59,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     public boolean deleteByAppId(Long appId) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
         QueryWrapper queryWrapper = QueryWrapper.create()
-                .eq("appId", appId);
+                .eq("app_id", appId);
         return this.remove(queryWrapper);
     }
     @Override
@@ -142,19 +142,19 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         // 拼接查询条件
         queryWrapper.eq("id", id)
                 .like("message", message)
-                .eq("messageType", messageType)
-                .eq("appId", appId)
-                .eq("userId", userId);
+                .eq("message_type", messageType)
+                .eq("app_id", appId)
+                .eq("user_id", userId);
         // 游标查询逻辑 - 只使用 createTime 作为游标
         if (lastCreateTime != null) {
-            queryWrapper.lt("createTime", lastCreateTime);
+            queryWrapper.lt("create_time", lastCreateTime);
         }
         // 排序
         if (StrUtil.isNotBlank(sortField)) {
             queryWrapper.orderBy(sortField, "ascend".equals(sortOrder));
         } else {
             // 默认按创建时间降序排列
-            queryWrapper.orderBy("createTime", false);
+            queryWrapper.orderBy("create_time", false);
         }
         return queryWrapper;
     }

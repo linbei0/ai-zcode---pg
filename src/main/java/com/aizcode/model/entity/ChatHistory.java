@@ -1,9 +1,7 @@
 package com.aizcode.model.entity;
 
-import com.mybatisflex.annotation.Column;
-import com.mybatisflex.annotation.Id;
-import com.mybatisflex.annotation.KeyType;
-import com.mybatisflex.annotation.Table;
+import com.mybatisflex.annotation.*;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -44,37 +42,37 @@ public class ChatHistory implements Serializable {
     /**
      * user/ai
      */
-    @Column("messageType")
+    @Column("message_type")
     private String messageType;
 
     /**
      * 应用id
      */
-    @Column("appId")
+    @Column("app_id")
     private Long appId;
 
     /**
      * 创建用户id
      */
-    @Column("userId")
+    @Column("user_id")
     private Long userId;
 
     /**
      * 创建时间
      */
-    @Column("createTime")
+    @Column("create_time")
     private LocalDateTime createTime;
 
     /**
      * 更新时间
      */
-    @Column("updateTime")
+    @Column("update_time")
     private LocalDateTime updateTime;
 
     /**
      * 是否删除
      */
-    @Column(value = "isDelete", isLogicDelete = true)
+    @Column(value = "is_delete", isLogicDelete = true)
     private Integer isDelete;
 
 }

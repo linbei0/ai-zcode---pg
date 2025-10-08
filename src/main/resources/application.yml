@@ -8,12 +8,14 @@ spring:
     timeout: 2592000
   profiles:
     active: local
-  # mysql
+  #PgSQL
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ai_zcode?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/ai_zcode
+    username: postgres
     password: root
+    type: com.alibaba.druid.pool.DruidDataSource
+
     # redis
   data:
     redis:

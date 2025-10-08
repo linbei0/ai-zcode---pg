@@ -49,7 +49,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         }
         // 2. 检查是否重复
         QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("user_account", userAccount);
         long count = this.mapper.selectCountByQuery(queryWrapper);
         if (count > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
@@ -94,8 +94,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         String encryptPassword = getEncryptPassword(userPassword);
         // 查询用户是否存在
         QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("userAccount", userAccount);
-        queryWrapper.eq("userPassword", encryptPassword);
+        queryWrapper.eq("user_account", userAccount);
+        queryWrapper.eq("user_password", encryptPassword);
         User user = this.mapper.selectOneByQuery(queryWrapper);
         // 用户不存在
         if (user == null) {
@@ -162,13 +162,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         String userRole = userQueryRequest.getUserRole();
         String sortField = userQueryRequest.getSortField();
         String sortOrder = userQueryRequest.getSortOrder();
-        return QueryWrapper.create()
+        
+        QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("id", id)
-                .eq("userRole", userRole)
-                .like("userAccount", userAccount)
-                .like("userName", userName)
-                .like("userProfile", userProfile)
-                .orderBy(sortField, "ascend".equals(sortOrder));
+                .eq("user_role", userRole)
+                .like("user_account", userAccount)
+                .like("user_name", userName)
+                .like("user_profile", userProfile);
+        
+        // 只有当 sortField 不为空时才添加排序
+        if (StrUtil.isNotBlank(sortField)) {
+            queryWrapper.orderBy(sortField, "ascend".equals(sortOrder));
+        } else {
+            // 默认按 id 降序排列
+            queryWrapper.orderBy("id", false);
+        }
+        
+        return queryWrapper;
     }
     @Override
     public String getEncryptPassword(String userPassword) {

@@ -2,9 +2,9 @@ package com.aizcode.generator;
 
 import cn.hutool.core.lang.Dict;
 import cn.hutool.setting.yaml.YamlUtil;
+import com.alibaba.druid.pool.DruidDataSource;
 import com.mybatisflex.codegen.Generator;
 import com.mybatisflex.codegen.config.GlobalConfig;
-import com.zaxxer.hikari.HikariDataSource;
 
 import java.util.Map;
 
@@ -21,8 +21,8 @@ public class MyBatisCodeGenerator {
         String username = String.valueOf(dataSourceConfig.get("username"));
         String password = String.valueOf(dataSourceConfig.get("password"));
         // 配置数据源
-        HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setJdbcUrl(url);
+        DruidDataSource dataSource = new DruidDataSource();
+        dataSource.setUrl(url);
         dataSource.setUsername(username);
         dataSource.setPassword(password);
 
@@ -49,7 +49,7 @@ public class MyBatisCodeGenerator {
         globalConfig.getStrategyConfig()
                 .setGenerateTable(TABLE_NAMES)
                 // 设置逻辑删除的默认字段名称
-                .setLogicDeleteColumn("isDelete");
+                .setLogicDeleteColumn("is_delete");
 
         // 设置生成 entity 并启用 Lombok
         globalConfig.enableEntity()
