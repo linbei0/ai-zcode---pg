@@ -22,6 +22,13 @@
       <!-- 右侧：用户操作区域 -->
       <a-col>
         <div class="user-login-status">
+          <a-select
+            v-model:value="backendValue"
+            class="backend-select"
+            size="small"
+            :options="backendOptions"
+            @change="handleBackendChange"
+          />
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
               <a-space>
@@ -54,9 +61,16 @@ import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
 import { LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
+import {
+  backendOptions,
+  currentBackend,
+  setCurrentBackend,
+  type BackendType,
+} from '@/config/backend'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
+const backendValue = ref<BackendType>(currentBackend.value)
 // 当前选中菜单
 const selectedKeys = ref<string[]>(['/'])
 // 监听路由变化，更新当前选中菜单
@@ -129,6 +143,15 @@ const doLogout = async () => {
     message.error('退出登录失败，' + res.data.message)
   }
 }
+
+const handleBackendChange = (backend: BackendType) => {
+  if (backend === currentBackend.value) {
+    return
+  }
+  setCurrentBackend(backend)
+  message.success(`已切换到 ${backend === 'python' ? 'Python' : 'Java'} 后端`)
+  window.location.reload()
+}
 </script>
 
 <style scoped>
@@ -185,6 +208,10 @@ const doLogout = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.backend-select {
+  width: 110px;
 }
 
 .user-login-status .ant-avatar {

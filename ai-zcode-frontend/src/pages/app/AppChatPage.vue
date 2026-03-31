@@ -227,7 +227,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
-import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
+import { getApiBaseUrl, getStaticPreviewUrl } from '@/config/backend'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
 
 import {
@@ -484,7 +484,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
   try {
     // 获取 axios 配置的 baseURL
-    const baseURL = request.defaults.baseURL || API_BASE_URL
+    const baseURL = getApiBaseUrl()
 
     // 构建URL参数
     const params = new URLSearchParams({
@@ -617,8 +617,7 @@ const downloadCode = async () => {
   }
   downloading.value = true
   try {
-    const API_BASE_URL = request.defaults.baseURL || ''
-    const url = `${API_BASE_URL}/app/download/${appId.value}`
+    const url = `${getApiBaseUrl()}/app/download/${appId.value}`
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',

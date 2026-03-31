@@ -1,10 +1,10 @@
 import axios from 'axios'
 import { message } from 'ant-design-vue'
-import { API_BASE_URL } from '@/config/env'
+import { getApiBaseUrl } from '@/config/backend'
 
 // 创建 Axios 实例
 const myAxios = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   timeout: 60000,
   withCredentials: true,
 })
@@ -13,6 +13,7 @@ const myAxios = axios.create({
 myAxios.interceptors.request.use(
   function (config) {
     // Do something before request is sent
+    config.baseURL = getApiBaseUrl()
     return config
   },
   function (error) {

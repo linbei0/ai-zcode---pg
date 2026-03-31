@@ -6,14 +6,21 @@
  * # 应用部署域名
  * VITE_DEPLOY_DOMAIN=http://localhost
  *
- * # API 基础地址
- * VITE_API_BASE_URL=http://localhost:8234/api
+ * # Java API 基础地址
+ * VITE_JAVA_API_BASE_URL=http://localhost:8234/api
+ *
+ * # Python API 基础地址
+ * VITE_PYTHON_API_BASE_URL=http://localhost:8335/api
+ *
+ * # 默认后端
+ * VITE_DEFAULT_BACKEND=java
  *
  * 生产环境可以创建 .env.production 文件：
  *
  * # 生产环境配置示例
  * VITE_DEPLOY_DOMAIN=https://your-domain.com
- * VITE_API_BASE_URL=https://api.your-domain.com
+ * VITE_JAVA_API_BASE_URL=https://java-api.your-domain.com
+ * VITE_PYTHON_API_BASE_URL=https://python-api.your-domain.com
  */
 
 export {}

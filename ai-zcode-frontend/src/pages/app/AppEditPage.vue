@@ -125,7 +125,7 @@ import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
 import { formatCodeGenType } from '@/utils/codeGenTypes'
 import { formatTime } from '@/utils/time'
 import UserInfo from '@/components/UserInfo.vue'
-import { getStaticPreviewUrl } from '@/config/env'
+import { getStaticPreviewUrl } from '@/config/backend'
 import type { FormInstance } from 'ant-design-vue'
 
 const route = useRoute()
