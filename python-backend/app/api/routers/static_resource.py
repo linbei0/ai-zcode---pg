@@ -22,12 +22,22 @@ def _content_type(file_path: Path) -> str:
         return "image/png"
     if suffix in {".jpg", ".jpeg"}:
         return "image/jpeg"
+    if suffix == ".svg":
+        return "image/svg+xml"
     return "application/octet-stream"
 
 
 @router.get("/{deploy_key}/")
 def serve_static_root(deploy_key: str, request: Request):
     file_path = request.app.state.settings.code_output_root / deploy_key / "index.html"
+    if not file_path.exists():
+        return error_response(40400, "请求数据不存在")
+    return FileResponse(file_path, media_type=_content_type(file_path))
+
+
+@router.get("/covers/{file_name}")
+def serve_cover_image(file_name: str, request: Request):
+    file_path = request.app.state.settings.screenshot_root / file_name
     if not file_path.exists():
         return error_response(40400, "请求数据不存在")
     return FileResponse(file_path, media_type=_content_type(file_path))

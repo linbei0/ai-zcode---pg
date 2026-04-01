@@ -131,7 +131,10 @@ class LangChainAIGateway(AIGateway):
         prompt = ChatPromptTemplate.from_messages(
             [("system", ROUTING_SYSTEM_PROMPT), ("human", "{init_prompt}")]
         )
-        structured_llm = self.llm.with_structured_output(CodeTypeDecision, method="json_schema")
+        structured_llm = self.llm.with_structured_output(
+            CodeTypeDecision,
+            method="function_calling",
+        )
         decision = (prompt | structured_llm).invoke({"init_prompt": init_prompt})
         return decision.code_gen_type
 

@@ -46,7 +46,7 @@
             </a-dropdown>
           </div>
           <div v-else>
-            <a-button type="primary" href="/user/login">登录</a-button>
+            <a-button type="primary" @click="goToLogin">登录</a-button>
           </div>
         </div>
       </a-col>
@@ -142,6 +142,10 @@ const doLogout = async () => {
   } else {
     message.error('退出登录失败，' + res.data.message)
   }
+}
+
+const goToLogin = async () => {
+  await router.push('/user/login')
 }
 
 const handleBackendChange = (backend: BackendType) => {

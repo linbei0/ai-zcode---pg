@@ -29,7 +29,15 @@ def _db(request: Request):
 
 
 def _service(request: Request, db) -> AppService:
-    return AppService(db, request.app.state.ai_gateway, StorageService(request.app.state.settings))
+    return AppService(
+        db,
+        request.app.state.ai_gateway,
+        StorageService(request.app.state.settings),
+        cache_store=request.app.state.cache_store,
+        screenshot_service=request.app.state.screenshot_service,
+        settings=request.app.state.settings,
+        session_factory=request.app.state.session_factory,
+    )
 
 
 @router.post("/add")
@@ -152,6 +160,14 @@ async def chat_to_gen_code(appId: int, message: str, request: Request, _=Depends
 
     async def event_generator() -> AsyncIterable[str]:
         try:
+            key = f"rate_limit:user:{login_user.id}"
+            allowed = request.app.state.rate_limiter.try_acquire(
+                key,
+                request.app.state.settings.chat_rate_limit,
+                request.app.state.settings.chat_rate_interval_seconds,
+            )
+            if not allowed:
+                raise BusinessException(ErrorCode.TOO_MANY_REQUEST, "AI 对话请求过于频繁，请稍后再试")
             async for chunk in service.chat_to_generate_code(appId, message, login_user):
                 payload = json.dumps({"d": chunk}, ensure_ascii=False, separators=(",", ":"))
                 yield f"data: {payload}\n\n"

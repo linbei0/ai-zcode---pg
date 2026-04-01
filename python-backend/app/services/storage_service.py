@@ -17,11 +17,11 @@ class StorageService:
         self.settings.code_output_root.mkdir(parents=True, exist_ok=True)
         self.settings.code_deploy_root.mkdir(parents=True, exist_ok=True)
 
-    def output_dir(self, code_gen_type: str, app_id: int) -> Path:
-        return self.settings.code_output_root / f"{code_gen_type}_{app_id}"
+    def output_dir(self, code_gen_type: str, identifier: int | str) -> Path:
+        return self.settings.code_output_root / f"{code_gen_type}_{identifier}"
 
-    def save_generated_code(self, code_gen_type: str, app_id: int, content: str) -> Path:
-        target_dir = self.output_dir(code_gen_type, app_id)
+    def save_generated_code(self, code_gen_type: str, identifier: int | str, content: str) -> Path:
+        target_dir = self.output_dir(code_gen_type, identifier)
         if target_dir.exists():
             shutil.rmtree(target_dir)
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -59,6 +59,16 @@ class StorageService:
             shutil.rmtree(deploy_dir)
         shutil.copytree(deploy_source, deploy_dir)
         return f"{self.settings.code_deploy_host}/{deploy_key}/"
+
+    def build_vue_project_if_needed(self, code_gen_type: str, source_dir: Path) -> Path | None:
+        if code_gen_type != "vue_project":
+            return None
+        self._run_command(self.settings.vue_install_command, source_dir)
+        self._run_command(self.settings.vue_build_command, source_dir)
+        dist_dir = source_dir / "dist"
+        if not dist_dir.exists():
+            raise BusinessException(ErrorCode.SYSTEM_ERROR, "Vue 项目构建完成但未生成 dist 目录")
+        return dist_dir
 
     def build_download_zip(self, code_gen_type: str, app_id: int) -> bytes:
         source_dir = self.output_dir(code_gen_type, app_id)

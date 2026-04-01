@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.cache import CacheStore
 from app.core.exceptions import BusinessException, ErrorCode
 from app.models.app import App
 from app.models.user import User
@@ -15,16 +16,30 @@ from app.repositories.app_repository import AppRepository
 from app.schemas.app import AppAddRequest, AppAdminUpdateRequest, AppQueryRequest, AppUpdateRequest
 from app.services.ai_service import AIGateway
 from app.services.chat_history_service import ChatHistoryService
+from app.services.screenshot_service import ScreenshotService
 from app.services.storage_service import StorageService
 from app.services.user_service import UserService
 
 
 class AppService:
-    def __init__(self, db: Session, ai_gateway: AIGateway, storage_service: StorageService):
+    def __init__(
+        self,
+        db: Session,
+        ai_gateway: AIGateway,
+        storage_service: StorageService,
+        cache_store: CacheStore | None = None,
+        screenshot_service: ScreenshotService | None = None,
+        settings: Any | None = None,
+        session_factory: Any | None = None,
+    ):
         self.db = db
         self.repository = AppRepository(db)
         self.ai_gateway = ai_gateway
         self.storage_service = storage_service
+        self.cache_store = cache_store
+        self.screenshot_service = screenshot_service
+        self.settings = settings
+        self.session_factory = session_factory
         self.user_service = UserService(db)
         self.chat_history_service = ChatHistoryService(db)
 
@@ -43,6 +58,7 @@ class AppService:
         )
         self.repository.save(app)
         self.db.commit()
+        self.invalidate_app_caches(app.id)
         return app.id
 
     def update_app(self, payload: AppUpdateRequest, login_user: User) -> bool:
@@ -52,6 +68,7 @@ class AppService:
         app.app_name = payload.appName
         app.edit_time = datetime.now(UTC)
         self.db.commit()
+        self.invalidate_app_caches(app.id)
         return True
 
     def delete_app(self, app_id: int, login_user: User) -> bool:
@@ -60,6 +77,7 @@ class AppService:
             raise BusinessException(ErrorCode.NO_AUTH_ERROR)
         app.is_delete = 1
         self.db.commit()
+        self.invalidate_app_caches(app.id)
         return True
 
     def get_app_entity(self, app_id: int) -> App:
@@ -69,8 +87,13 @@ class AppService:
         return app
 
     def get_app_vo(self, app: App) -> dict[str, Any]:
+        cache_key = self._app_vo_cache_key(app.id)
+        if self.cache_store:
+            cached = self.cache_store.get_json(cache_key)
+            if cached:
+                return cached
         user = self.user_service.get_user(app.user_id)
-        return {
+        payload = {
             "id": app.id,
             "appName": app.app_name,
             "cover": app.cover,
@@ -84,8 +107,17 @@ class AppService:
             "updateTime": app.update_time.isoformat() if app.update_time else None,
             "user": self.user_service.to_user_vo(user),
         }
+        if self.cache_store and self.settings:
+            self.cache_store.set_json(cache_key, payload, self.settings.app_vo_cache_ttl_seconds)
+        return payload
 
     def list_page(self, query: AppQueryRequest) -> tuple[list[dict], int]:
+        cache_key = None
+        if self.cache_store and self.settings and query.priority == 99 and query.pageNum <= 10:
+            cache_key = self._good_app_cache_key(query)
+            cached = self.cache_store.get_json(cache_key)
+            if cached:
+                return cached["records"], cached["total"]
         stmt = select(App).where(App.is_delete == 0)
         count_stmt = select(func.count(App.id)).where(App.is_delete == 0)
         if query.id:
@@ -117,7 +149,10 @@ class AppService:
         total = self.db.execute(count_stmt).scalar_one()
         offset = (query.pageNum - 1) * query.pageSize
         records = self.db.execute(stmt.offset(offset).limit(query.pageSize)).scalars().all()
-        return [self.get_app_vo(item) for item in records], total
+        payload = [self.get_app_vo(item) for item in records]
+        if cache_key and self.cache_store and self.settings:
+            self.cache_store.set_json(cache_key, {"records": payload, "total": total}, self.settings.good_app_cache_ttl_seconds)
+        return payload, total
 
     async def chat_to_generate_code(self, app_id: int, message: str, login_user: User):
         if app_id <= 0:
@@ -156,6 +191,8 @@ class AppService:
         app.deploy_key = deploy_key
         app.deployed_time = datetime.now(UTC)
         self.db.commit()
+        self.invalidate_app_caches(app.id)
+        self.generate_app_cover(app.id, deploy_url.replace("http://localhost", code_deploy_host, 1))
         return deploy_url.replace("http://localhost", code_deploy_host, 1)
 
     def build_download_zip(self, app_id: int, login_user: User) -> bytes:
@@ -172,7 +209,40 @@ class AppService:
             app.priority = payload.priority
         app.edit_time = datetime.now(UTC)
         self.db.commit()
+        self.invalidate_app_caches(app.id)
         return True
+
+    def generate_app_cover(self, app_id: int, app_url: str) -> None:
+        if not self.screenshot_service or not self.session_factory:
+            return
+        cover_url = self.screenshot_service.generate_screenshot(app_url)
+        if not cover_url:
+            return
+        db = self.session_factory()
+        try:
+            app = db.get(App, app_id)
+            if app and app.is_delete == 0:
+                app.cover = cover_url
+                db.commit()
+                if self.cache_store:
+                    self.invalidate_app_caches(app_id)
+        finally:
+            db.close()
+
+    def invalidate_app_caches(self, app_id: int) -> None:
+        if not self.cache_store:
+            return
+        self.cache_store.delete(self._app_vo_cache_key(app_id))
+        self.cache_store.delete_prefix("good_app_page:")
+
+    def _good_app_cache_key(self, query: AppQueryRequest) -> str:
+        return (
+            "good_app_page:"
+            f"page={query.pageNum}:size={query.pageSize}:sort={query.sortField or ''}:order={query.sortOrder or ''}"
+        )
+
+    def _app_vo_cache_key(self, app_id: int) -> str:
+        return f"app_vo:{app_id}"
 
     def _apply_sort(self, stmt, sort_field: str | None, sort_order: str | None):
         mapping = {

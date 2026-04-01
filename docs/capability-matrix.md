@@ -44,4 +44,7 @@
 | 能力 | Java | Python |
 | --- | --- | --- |
 | 健康检查 `/health/` | Java保留 | Python已对齐 |
-| 工作流路由 `/workflow/*` | Java保留 | Python部分对齐（测试辅助路由已提供） |
+| 工作流路由 `/workflow/*` | Java保留 | Python已对齐 |
+| 聊天生成限流 | Java保留 | Python已对齐 |
+| 部署后封面更新 | Java保留 | Python已对齐 |
+| 精选应用缓存 | Java保留 | Python已对齐 |
