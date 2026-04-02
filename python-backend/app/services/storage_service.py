@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 import shutil
 import subprocess
 import zipfile
@@ -9,6 +11,15 @@ from pathlib import Path
 from app.ai.parsers import extract_html, extract_multi_file, extract_vue_project_files
 from app.core.config import Settings
 from app.core.exceptions import BusinessException, ErrorCode
+
+IMPORT_FROM_PATTERN = re.compile(r"from\s+['\"](?P<module>[^'\"]+)['\"]")
+DIRECT_IMPORT_PATTERN = re.compile(r"import\s+['\"](?P<module>[^'\"]+)['\"]")
+NPM_PACKAGE_NAME_PATTERN = re.compile(r"^(?P<name>@?[^/]+(?:/[^/]+)?)")
+PACKAGE_DEFAULT_VERSIONS = {
+    "vuex": "^4.1.0",
+    "pinia": "^2.1.7",
+    "axios": "^1.7.2",
+}
 
 
 class StorageService:
@@ -32,7 +43,9 @@ class StorageService:
             for file_name, file_content in extract_multi_file(content).items():
                 (target_dir / file_name).write_text(file_content, encoding="utf-8")
         elif code_gen_type == "vue_project":
-            for relative_path, file_content in extract_vue_project_files(content).items():
+            vue_project_files = extract_vue_project_files(content)
+            vue_project_files = self._build_vue_project_files(vue_project_files)
+            for relative_path, file_content in vue_project_files.items():
                 file_path = target_dir / relative_path
                 file_path.parent.mkdir(parents=True, exist_ok=True)
                 file_path.write_text(file_content, encoding="utf-8")
@@ -95,3 +108,156 @@ class StorageService:
                 ErrorCode.SYSTEM_ERROR,
                 f"执行命令失败: {command}\n{result.stdout}\n{result.stderr}",
             )
+
+    def _build_vue_project_files(self, files: dict[str, str]) -> dict[str, str]:
+        scaffold_files = self._create_vue_project_scaffold()
+        scaffold_files.update(files)
+        scaffold_files = self._merge_vue_package_dependencies(scaffold_files)
+        scaffold_files = self._inject_vue_runtime_bootstrap(scaffold_files)
+        return scaffold_files
+
+    def _create_vue_project_scaffold(self) -> dict[str, str]:
+        return {
+            "package.json": """{
+  "name": "ai-zcode-vue-project",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "vite": "^5.2.8"
+  }
+}
+""".strip(),
+            "index.html": """<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI ZCode Vue Project</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+""".strip(),
+            "vite.config.js": """import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+export default defineConfig({
+  base: './',
+  plugins: [vue()],
+})
+""".strip(),
+            "src/main.js": """import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+
+const app = createApp(App)
+app.use(router)
+app.mount('#app')
+""".strip(),
+            "src/App.vue": """<template>
+  <router-view />
+</template>
+""".strip(),
+            "src/router/index.js": """import { createRouter, createWebHashHistory } from 'vue-router'
+import HomeView from '../views/Home.vue'
+
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: HomeView,
+    },
+  ],
+})
+
+export default router
+""".strip(),
+            "src/views/Home.vue": """<template>
+  <main>
+    <h1>AI ZCode Vue Project</h1>
+  </main>
+</template>
+""".strip(),
+        }
+
+    def _merge_vue_package_dependencies(self, files: dict[str, str]) -> dict[str, str]:
+        package_json = json.loads(files["package.json"])
+        dependencies = dict(package_json.get("dependencies") or {})
+        dev_dependencies = dict(package_json.get("devDependencies") or {})
+
+        for file_path, content in files.items():
+            if not file_path.endswith((".js", ".ts", ".vue")):
+                continue
+            for package_name in self._extract_external_packages(content):
+                if package_name in dependencies or package_name in dev_dependencies:
+                    continue
+                default_version = PACKAGE_DEFAULT_VERSIONS.get(package_name)
+                if default_version:
+                    dependencies[package_name] = default_version
+
+        package_json["dependencies"] = dependencies
+        package_json["devDependencies"] = dev_dependencies
+        files["package.json"] = json.dumps(package_json, ensure_ascii=False, indent=2) + "\n"
+        return files
+
+    def _inject_vue_runtime_bootstrap(self, files: dict[str, str]) -> dict[str, str]:
+        main_entry_path = "src/main.js" if "src/main.js" in files else "src/main.ts" if "src/main.ts" in files else None
+        if main_entry_path is None:
+            return files
+
+        main_entry_content = files[main_entry_path]
+
+        if "src/store/index.js" in files or "src/store/index.ts" in files:
+            main_entry_content = self._ensure_store_bootstrap(main_entry_content)
+
+        if "src/pinia/index.js" in files or "src/pinia/index.ts" in files:
+            main_entry_content = self._ensure_pinia_bootstrap(main_entry_content)
+
+        files[main_entry_path] = main_entry_content
+        return files
+
+    def _ensure_store_bootstrap(self, main_entry_content: str) -> str:
+        normalized_content = main_entry_content
+        if "import store from './store'" not in normalized_content and 'import store from "./store"' not in normalized_content:
+            normalized_content = "import store from './store'\n" + normalized_content
+        if "app.use(store)" not in normalized_content:
+            normalized_content = normalized_content.replace("app.use(router)\n", "app.use(router)\napp.use(store)\n")
+        return normalized_content
+
+    def _ensure_pinia_bootstrap(self, main_entry_content: str) -> str:
+        normalized_content = main_entry_content
+        if "import { createPinia } from 'pinia'" not in normalized_content and 'import { createPinia } from "pinia"' not in normalized_content:
+            normalized_content = "import { createPinia } from 'pinia'\n" + normalized_content
+        if "const pinia = createPinia()" not in normalized_content:
+            normalized_content = normalized_content.replace("const app = createApp(App)\n", "const app = createApp(App)\nconst pinia = createPinia()\n")
+        if "app.use(pinia)" not in normalized_content:
+            normalized_content = normalized_content.replace("app.use(router)\n", "app.use(router)\napp.use(pinia)\n")
+        return normalized_content
+
+    def _extract_external_packages(self, content: str) -> set[str]:
+        package_names: set[str] = set()
+        for pattern in (IMPORT_FROM_PATTERN, DIRECT_IMPORT_PATTERN):
+            for match in pattern.finditer(content):
+                module_name = match.group("module").strip()
+                if module_name.startswith((".", "/")):
+                    continue
+                package_match = NPM_PACKAGE_NAME_PATTERN.match(module_name)
+                if not package_match:
+                    continue
+                package_names.add(package_match.group("name"))
+        return package_names

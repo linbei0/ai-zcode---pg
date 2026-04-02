@@ -38,3 +38,4 @@ build/
 skills-lock.json
 .agents/
 .trae/
+.runtime/

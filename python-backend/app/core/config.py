@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_base_url: str | None = None
     openai_model: str = "gpt-4.1-mini"
+    openai_enable_thinking: bool | None = None
+    routing_openai_api_key: str | None = None
+    routing_openai_base_url: str | None = None
+    routing_openai_model: str | None = None
+    routing_openai_enable_thinking: bool | None = None
     testing: bool = False
     repo_root: str | None = None
     code_deploy_host: str = "http://localhost"
@@ -40,7 +45,15 @@ class Settings(BaseSettings):
     vue_install_command: str = "npm install"
     vue_build_command: str = "npm run build"
 
-    @field_validator("openai_api_key", "openai_base_url", "repo_root", mode="before")
+    @field_validator(
+        "openai_api_key",
+        "openai_base_url",
+        "repo_root",
+        "routing_openai_api_key",
+        "routing_openai_base_url",
+        "routing_openai_model",
+        mode="before",
+    )
     @classmethod
     def normalize_blank_optional_strings(cls, value: Any):
         if isinstance(value, str):

@@ -115,7 +115,14 @@ management:
 cd "python-backend"
 uv venv .venv
 uv sync --all-groups
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8335 --reload
+uv run aizcode-dev
+```
+
+首次启动会自动下载并拉起开发环境所需的 `Nginx`，用于承载部署后的站点访问地址 `http://localhost/{deployKey}/`。
+如需直接调试 `uvicorn` 而不自动管理 `Nginx`，可继续使用：
+
+```powershell
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8335 --reload
 ```
 
 可选环境变量：
@@ -153,6 +160,15 @@ VITE_DEFAULT_BACKEND=java
   - `AIZCODE_OPENAI_API_KEY`
   - `AIZCODE_OPENAI_MODEL`
   - `AIZCODE_OPENAI_BASE_URL`（可选）
+  - `AIZCODE_OPENAI_ENABLE_THINKING`（可选，Qwen 默认会为结构化路由自动关闭 thinking）
+  - `AIZCODE_ROUTING_OPENAI_API_KEY`（可选，单独配置路由模型）
+  - `AIZCODE_ROUTING_OPENAI_BASE_URL`（可选）
+  - `AIZCODE_ROUTING_OPENAI_MODEL`（可选）
+  - `AIZCODE_ROUTING_OPENAI_ENABLE_THINKING`（可选）
+- Python 开发启动器：
+  - `AIZCODE_NGINX_PORT`（可选，默认 `80`）
+  - `AIZCODE_NGINX_AUTO_START`（可选，默认 `true`）
+  - `AIZCODE_NGINX_DOWNLOAD_URL`（可选，默认官方 Windows 稳定版下载地址）
 - 对象存储（可选）：若使用腾讯云 COS，请在 `CosClientConfig` 对应位置配置：
   - `COS_SECRET_ID`、`COS_SECRET_KEY`、`COS_REGION`、`COS_BUCKET`
 
@@ -160,6 +176,7 @@ VITE_DEFAULT_BACKEND=java
 - 前端（开发）：`http://localhost:5173/`
 - Java API 根路径：`http://localhost:8234/api`
 - Python API 根路径：`http://localhost:8335/api`
+- 部署站点（开发）：`http://localhost/{deployKey}/`
 - API 文档（Knife4j）：`http://localhost:8234/api/doc.html`
 - Python OpenAPI：`http://localhost:8335/docs`
 - 健康检查（Actuator）：`http://localhost:8234/api/actuator/health`

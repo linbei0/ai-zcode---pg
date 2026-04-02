@@ -44,4 +44,13 @@ def extract_vue_project_files(content: str) -> dict[str, str]:
         files[relative_path] = match.group("content").strip()
     if not files:
         raise BusinessException(ErrorCode.SYSTEM_ERROR, "vue_project 模式未解析出任何文件")
+    has_source_file = any(
+        relative_path == "src/App.vue" or relative_path.startswith(("src/components/", "src/views/", "src/pages/"))
+        for relative_path in files
+    )
+    if not has_source_file:
+        raise BusinessException(
+            ErrorCode.SYSTEM_ERROR,
+            "vue_project 模式至少需要提供 src/App.vue、src/components/*、src/views/* 或 src/pages/* 之一",
+        )
     return files

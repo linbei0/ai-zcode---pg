@@ -179,8 +179,17 @@ class AppService:
             raise BusinessException(ErrorCode.SYSTEM_ERROR, str(exc)) from exc
 
         full_content = "".join(chunks)
-        self.storage_service.save_generated_code(app.code_gen_type, app_id, full_content)
-        self.chat_history_service.add_chat_message(app_id, full_content, "ai", login_user.id)
+        try:
+            source_dir = self.storage_service.save_generated_code(app.code_gen_type, app_id, full_content)
+            # Vue 项目需要先同步构建 dist，前端预览才能访问到 dist/index.html
+            self.storage_service.build_vue_project_if_needed(app.code_gen_type, source_dir)
+            self.chat_history_service.add_chat_message(app_id, full_content, "ai", login_user.id)
+        except Exception as exc:
+            error_message = f"代码保存或构建失败: {exc}"
+            self.chat_history_service.add_chat_message(app_id, error_message, "ai", login_user.id)
+            if isinstance(exc, BusinessException):
+                raise
+            raise BusinessException(ErrorCode.SYSTEM_ERROR, str(exc)) from exc
 
     def deploy_app(self, app_id: int, login_user: User, code_deploy_host: str) -> str:
         app = self.get_app_entity(app_id)

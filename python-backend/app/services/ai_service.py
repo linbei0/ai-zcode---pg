@@ -25,6 +25,50 @@ class CodeTypeDecision(BaseModel):
     code_gen_type: CodeGenType
 
 
+def should_disable_thinking_for_model(model_name: str) -> bool:
+    normalized_model_name = model_name.strip().lower()
+    return normalized_model_name.startswith("qwen")
+
+
+def build_chat_model_kwargs(settings: Settings) -> dict:
+    chat_model_kwargs = {
+        "api_key": settings.openai_api_key,
+        "base_url": settings.openai_base_url,
+        "model": settings.openai_model,
+    }
+    if settings.openai_enable_thinking is False:
+        chat_model_kwargs["extra_body"] = {"enable_thinking": False}
+    elif settings.openai_enable_thinking is None and should_disable_thinking_for_model(settings.openai_model):
+        chat_model_kwargs["extra_body"] = {"enable_thinking": False}
+    return chat_model_kwargs
+
+
+def build_routing_model_settings(settings: Settings) -> dict:
+    return {
+        "api_key": settings.routing_openai_api_key or settings.openai_api_key,
+        "base_url": settings.routing_openai_base_url or settings.openai_base_url,
+        "model": settings.routing_openai_model or settings.openai_model,
+        "enable_thinking": settings.routing_openai_enable_thinking,
+    }
+
+
+def build_routing_chat_model_kwargs(settings: Settings) -> dict:
+    routing_settings = build_routing_model_settings(settings)
+    chat_model_kwargs = {
+        "api_key": routing_settings["api_key"],
+        "base_url": routing_settings["base_url"],
+        "model": routing_settings["model"],
+    }
+    if routing_settings["enable_thinking"] is False:
+        chat_model_kwargs["extra_body"] = {"enable_thinking": False}
+    elif (
+        routing_settings["enable_thinking"] is None
+        and should_disable_thinking_for_model(routing_settings["model"])
+    ):
+        chat_model_kwargs["extra_body"] = {"enable_thinking": False}
+    return chat_model_kwargs
+
+
 class AIGateway(ABC):
     @abstractmethod
     def route_code_type(self, init_prompt: str) -> CodeGenType: ...
@@ -121,17 +165,14 @@ class LangChainAIGateway(AIGateway):
     def __init__(self, settings: Settings):
         if not settings.openai_api_key:
             raise BusinessException(ErrorCode.SYSTEM_ERROR, "未配置 OPENAI_API_KEY，无法启用 Python AI 能力")
-        self.llm = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-            model=settings.openai_model,
-        )
+        self.llm = ChatOpenAI(**build_chat_model_kwargs(settings))
+        self.routing_llm = ChatOpenAI(**build_routing_chat_model_kwargs(settings))
 
     def route_code_type(self, init_prompt: str) -> CodeGenType:
         prompt = ChatPromptTemplate.from_messages(
             [("system", ROUTING_SYSTEM_PROMPT), ("human", "{init_prompt}")]
         )
-        structured_llm = self.llm.with_structured_output(
+        structured_llm = self.routing_llm.with_structured_output(
             CodeTypeDecision,
             method="function_calling",
         )
