@@ -19,6 +19,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/py-api': {
+        target: 'http://localhost:8335',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/py-api/, '/api'),
+      },
     },
   },
 })

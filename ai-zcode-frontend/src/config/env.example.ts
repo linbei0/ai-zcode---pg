@@ -7,10 +7,12 @@
  * VITE_DEPLOY_DOMAIN=http://localhost
  *
  * # Java API 基础地址
- * VITE_JAVA_API_BASE_URL=http://localhost:8234/api
+ * # 本地开发建议通过 Vite 代理使用 /api
+ * VITE_JAVA_API_BASE_URL=/api
  *
  * # Python API 基础地址
- * VITE_PYTHON_API_BASE_URL=http://localhost:8335/api
+ * # 本地开发建议通过 Vite 代理使用 /py-api
+ * VITE_PYTHON_API_BASE_URL=/py-api
  *
  * # 默认后端
  * VITE_DEFAULT_BACKEND=java
