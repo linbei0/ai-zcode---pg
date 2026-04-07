@@ -48,6 +48,11 @@ AIZCODE_CORS_ORIGINS=["http://localhost:5173"]
 AIZCODE_OPENAI_ENABLE_THINKING=
 AIZCODE_NGINX_PORT=80
 AIZCODE_NGINX_AUTO_START=true
+AIZCODE_COS_SECRET_ID=
+AIZCODE_COS_SECRET_KEY=
+AIZCODE_COS_REGION=ap-shanghai
+AIZCODE_COS_BUCKET=
+AIZCODE_COS_HOST=
 ```
 
 ## API 契约
@@ -76,7 +81,10 @@ AIZCODE_NGINX_AUTO_START=true
 - `uv run aizcode-dev` 会自动下载并启动开发环境的 `Nginx`
 - `AIZCODE_PUBLIC_API_BASE_URL` 需要与前端访问 Python 后端的地址一致，否则封面资源 URL 会不正确
 - 支持为“路由分类”单独配置模型；若路由模型是 Qwen，则结构化路由阶段会自动关闭 thinking，以兼容 DashScope 的 OpenAI 兼容接口限制
-- 当前部署封面资源为服务端生成的 SVG 封面文件，路径由 `/api/static/covers/{file}` 提供
+- 当前部署封面会在部署成功后异步生成真实页面截图，并上传到腾讯云 COS 后回写 `cover`
+- 运行真实截图前需要先执行 `playwright install chromium`
+- 若 COS 配置缺失或截图失败，部署仍会成功返回，但 `cover` 不会被更新
+- `/api/static/covers/{file}` 路由保留为历史兼容，本次新封面不再依赖该路径
 
 ## 测试
 

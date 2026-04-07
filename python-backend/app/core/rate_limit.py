@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import time
 from abc import ABC, abstractmethod
 
 import redis
+
+logger = logging.getLogger(__name__)
 
 
 class RateLimiter(ABC):
@@ -31,10 +34,21 @@ class RedisRateLimiter(RateLimiter):
         self.client = redis.Redis.from_url(redis_url, decode_responses=True)
 
     def try_acquire(self, key: str, rate: int, interval_seconds: int) -> bool:
+        try:
+            count, ttl = self._incr_and_get_ttl(key)
+        except redis.ResponseError as exc:
+            if "WRONGTYPE" not in str(exc):
+                raise
+            logger.warning("限流键类型冲突，已重置键后重试: %s", key)
+            self.client.delete(key)
+            count, ttl = self._incr_and_get_ttl(key)
+        if ttl == -1:
+            self.client.expire(key, interval_seconds)
+        return int(count) <= rate
+
+    def _incr_and_get_ttl(self, key: str) -> tuple[int, int]:
         pipeline = self.client.pipeline()
         pipeline.incr(key)
         pipeline.ttl(key)
         count, ttl = pipeline.execute()
-        if ttl == -1:
-            self.client.expire(key, interval_seconds)
-        return int(count) <= rate
+        return int(count), int(ttl)

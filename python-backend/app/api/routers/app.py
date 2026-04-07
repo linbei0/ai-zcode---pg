@@ -160,7 +160,7 @@ async def chat_to_gen_code(appId: int, message: str, request: Request, _=Depends
 
     async def event_generator() -> AsyncIterable[str]:
         try:
-            key = f"rate_limit:user:{login_user.id}"
+            key = f"py_rate_limit:chat:user:{login_user.id}"
             allowed = request.app.state.rate_limiter.try_acquire(
                 key,
                 request.app.state.settings.chat_rate_limit,

@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     screenshot_width: int = 1600
     screenshot_height: int = 900
     screenshot_timeout_seconds: int = 30
+    cos_secret_id: str | None = None
+    cos_secret_key: str | None = None
+    cos_region: str | None = None
+    cos_bucket: str | None = None
+    cos_host: str | None = None
     vue_install_command: str = "npm install"
     vue_build_command: str = "npm run build"
 
@@ -52,6 +57,11 @@ class Settings(BaseSettings):
         "routing_openai_api_key",
         "routing_openai_base_url",
         "routing_openai_model",
+        "cos_secret_id",
+        "cos_secret_key",
+        "cos_region",
+        "cos_bucket",
+        "cos_host",
         mode="before",
     )
     @classmethod

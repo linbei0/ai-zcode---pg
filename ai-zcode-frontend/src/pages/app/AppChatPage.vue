@@ -561,21 +561,20 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     // 处理错误
-    eventSource.onerror = function () {
+    eventSource.onerror = async function () {
       if (streamCompleted || !isGenerating.value) return
-      // 检查是否是正常的连接关闭
-      if (eventSource?.readyState === EventSource.CONNECTING) {
-        streamCompleted = true
-        isGenerating.value = false
-        eventSource?.close()
 
-        setTimeout(async () => {
-          await fetchAppInfo()
-          updatePreview()
-        }, 1000)
-      } else {
-        handleError(new Error('SSE连接错误'), aiMessageIndex)
+      streamCompleted = true
+      isGenerating.value = false
+      eventSource?.close()
+
+      const recovered = await recoverPreviewAfterStreamInterruption()
+      if (recovered) {
+        messages.value[aiMessageIndex].loading = false
+        return
       }
+
+      handleError(new Error('SSE连接错误'), aiMessageIndex)
     }
   } catch (error) {
     console.error('创建 EventSource 失败：', error)
@@ -598,8 +597,42 @@ const updatePreview = () => {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
     const newPreviewUrl = getStaticPreviewUrl(codeGenType, appId.value)
     previewUrl.value = newPreviewUrl
-    previewReady.value = true
+    previewReady.value = false
   }
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const isPreviewAccessible = async (url: string) => {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    return response.ok
+  } catch (error) {
+    console.warn('预览资源暂不可用，继续等待：', error)
+    return false
+  }
+}
+
+const recoverPreviewAfterStreamInterruption = async () => {
+  const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
+  const maxAttempts = codeGenType === CodeGenTypeEnum.VUE_PROJECT ? 8 : 3
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await fetchAppInfo()
+    updatePreview()
+
+    if (previewUrl.value && (await isPreviewAccessible(previewUrl.value))) {
+      return true
+    }
+
+    await sleep(1000)
+  }
+
+  return false
 }
 
 // 滚动到底部

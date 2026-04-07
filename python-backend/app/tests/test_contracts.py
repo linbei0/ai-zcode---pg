@@ -17,6 +17,11 @@ def build_client(tmp_path: Path) -> TestClient:
             "session_secret": "test-secret",
             "repo_root": str(tmp_path),
             "testing": True,
+            "cos_secret_id": "test-secret-id",
+            "cos_secret_key": "test-secret-key",
+            "cos_region": "ap-shanghai",
+            "cos_bucket": "test-bucket",
+            "cos_host": "https://cos.example.com",
         }
     )
     return TestClient(app)
@@ -243,7 +248,67 @@ def test_deploy_updates_cover_after_screenshot(tmp_path: Path) -> None:
         time.sleep(0.1)
 
     assert cover
-    assert cover.endswith(".svg")
+    assert cover.startswith("https://cos.example.com/screenshots/")
+    assert cover.endswith(".png")
+
+
+def test_deploy_keeps_success_when_screenshot_pipeline_fails(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+    register_and_login(client, user_account="coverFailureUser")
+    client.app.state.screenshot_service.should_fail = True
+
+    add_res = client.post("/api/app/add", json={"initPrompt": "生成一个极简 HTML 页面"})
+    app_id = add_res.json()["data"]
+
+    client.get(
+        "/api/app/chat/gen/code",
+        params={"appId": app_id, "message": "给我一个带标题和按钮的页面"},
+    )
+    deploy_res = client.post("/api/app/deploy", json={"appId": app_id})
+    assert deploy_res.status_code == 200
+    assert deploy_res.json()["code"] == 0
+
+    time.sleep(0.2)
+    app_res = client.get("/api/app/get/vo", params={"id": app_id})
+    assert app_res.status_code == 200
+    assert app_res.json()["data"].get("cover") is None
+
+
+def test_deploy_does_not_clear_existing_cover_when_screenshot_pipeline_fails(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+    register_and_login(client, user_account="coverRetainUser")
+
+    add_res = client.post("/api/app/add", json={"initPrompt": "生成一个极简 HTML 页面"})
+    app_id = add_res.json()["data"]
+
+    client.get(
+        "/api/app/chat/gen/code",
+        params={"appId": app_id, "message": "给我一个带标题和按钮的页面"},
+    )
+    first_deploy_res = client.post("/api/app/deploy", json={"appId": app_id})
+    assert first_deploy_res.status_code == 200
+    assert first_deploy_res.json()["code"] == 0
+
+    deadline = time.time() + 3
+    cover = None
+    while time.time() < deadline:
+        app_res = client.get("/api/app/get/vo", params={"id": app_id})
+        cover = app_res.json()["data"].get("cover")
+        if cover:
+            break
+        time.sleep(0.1)
+
+    assert cover
+
+    client.app.state.screenshot_service.should_fail = True
+    second_deploy_res = client.post("/api/app/deploy", json={"appId": app_id})
+    assert second_deploy_res.status_code == 200
+    assert second_deploy_res.json()["code"] == 0
+
+    time.sleep(0.2)
+    latest_app_res = client.get("/api/app/get/vo", params={"id": app_id})
+    assert latest_app_res.status_code == 200
+    assert latest_app_res.json()["data"].get("cover") == cover
 
 
 def test_good_app_list_uses_cache_and_invalidates_on_admin_update(tmp_path: Path) -> None:
@@ -279,3 +344,38 @@ def test_good_app_list_uses_cache_and_invalidates_on_admin_update(tmp_path: Path
     invalidated_res = client.post("/api/app/good/list/page/vo", json={"pageNum": 1, "pageSize": 10})
     assert invalidated_res.status_code == 200
     assert invalidated_res.json()["data"]["records"][0]["appName"] == "缓存失效后名称"
+
+
+def test_toggle_featured_by_admin_keeps_existing_name_and_cover(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+    register_and_login(client, user_account="featuredUser")
+
+    add_res = client.post("/api/app/add", json={"initPrompt": "创建一个现代化的企业官网"})
+    app_id = add_res.json()["data"]
+
+    client.post("/api/workflow/testing/promote-admin")
+    client.post(
+        "/api/app/admin/update",
+        json={
+            "id": app_id,
+            "appName": "企业官网",
+            "cover": "https://example.com/cover.png",
+            "priority": 0,
+        },
+    )
+
+    toggle_res = client.post(
+        "/api/app/admin/update",
+        json={
+            "id": app_id,
+            "priority": 99,
+        },
+    )
+    assert toggle_res.status_code == 200
+    assert toggle_res.json()["code"] == 0
+
+    app_res = client.get("/api/app/get/vo", params={"id": app_id})
+    assert app_res.status_code == 200
+    assert app_res.json()["data"]["appName"] == "企业官网"
+    assert app_res.json()["data"]["cover"] == "https://example.com/cover.png"
+    assert app_res.json()["data"]["priority"] == 99

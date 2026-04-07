@@ -79,3 +79,46 @@ export default createStore({
     assert '"vuex"' in package_json_text
     assert "import store from './store'" in main_js_text
     assert "app.use(store)" in main_js_text
+
+
+def test_save_generated_vue_project_normalizes_router_to_hash_history() -> None:
+    storage = build_storage_service()
+    content = """
+FILE: src/App.vue
+```vue
+<template>
+  <router-view />
+</template>
+```
+FILE: src/router/index.js
+```javascript
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from '../views/Home.vue'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Home',
+    component: Home
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router
+```
+FILE: src/views/Home.vue
+```vue
+<template><section>home page</section></template>
+```
+"""
+
+    target_dir = storage.save_generated_code("vue_project", 3, content)
+    router_text = (target_dir / "src" / "router" / "index.js").read_text(encoding="utf-8")
+
+    assert "createWebHashHistory" in router_text
+    assert "createWebHistory" not in router_text
+    assert "history: createWebHashHistory()" in router_text

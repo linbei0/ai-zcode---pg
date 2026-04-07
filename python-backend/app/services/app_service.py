@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 import random
 import string
+import threading
 from datetime import UTC, datetime
 from typing import Any
 
@@ -19,6 +21,8 @@ from app.services.chat_history_service import ChatHistoryService
 from app.services.screenshot_service import ScreenshotService
 from app.services.storage_service import StorageService
 from app.services.user_service import UserService
+
+logger = logging.getLogger(__name__)
 
 
 class AppService:
@@ -212,8 +216,10 @@ class AppService:
 
     def update_app_by_admin(self, payload: AppAdminUpdateRequest) -> bool:
         app = self.get_app_entity(payload.id)
-        app.app_name = payload.appName
-        app.cover = payload.cover
+        if payload.appName is not None:
+            app.app_name = payload.appName
+        if payload.cover is not None:
+            app.cover = payload.cover
         if payload.priority is not None:
             app.priority = payload.priority
         app.edit_time = datetime.now(UTC)
@@ -224,19 +230,25 @@ class AppService:
     def generate_app_cover(self, app_id: int, app_url: str) -> None:
         if not self.screenshot_service or not self.session_factory:
             return
-        cover_url = self.screenshot_service.generate_screenshot(app_url)
-        if not cover_url:
-            return
-        db = self.session_factory()
-        try:
-            app = db.get(App, app_id)
-            if app and app.is_delete == 0:
-                app.cover = cover_url
-                db.commit()
-                if self.cache_store:
-                    self.invalidate_app_caches(app_id)
-        finally:
-            db.close()
+
+        def run_cover_job() -> None:
+            cover_url = self.screenshot_service.generate_screenshot(app_url, app_id=app_id)
+            if not cover_url:
+                return
+            db = self.session_factory()
+            try:
+                app = db.get(App, app_id)
+                if app and app.is_delete == 0:
+                    app.cover = cover_url
+                    db.commit()
+                    if self.cache_store:
+                        self.invalidate_app_caches(app_id)
+            except Exception as exc:
+                logger.error("回写应用封面失败，app_id=%s, cover=%s, error=%s", app_id, cover_url, exc, exc_info=True)
+            finally:
+                db.close()
+
+        threading.Thread(target=run_cover_job, name=f"app-cover-{app_id}", daemon=True).start()
 
     def invalidate_app_caches(self, app_id: int) -> None:
         if not self.cache_store:

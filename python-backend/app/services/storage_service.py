@@ -113,6 +113,7 @@ class StorageService:
         scaffold_files = self._create_vue_project_scaffold()
         scaffold_files.update(files)
         scaffold_files = self._merge_vue_package_dependencies(scaffold_files)
+        scaffold_files = self._normalize_vue_router_history(scaffold_files)
         scaffold_files = self._inject_vue_runtime_bootstrap(scaffold_files)
         return scaffold_files
 
@@ -229,6 +230,16 @@ export default router
             main_entry_content = self._ensure_pinia_bootstrap(main_entry_content)
 
         files[main_entry_path] = main_entry_content
+        return files
+
+    def _normalize_vue_router_history(self, files: dict[str, str]) -> dict[str, str]:
+        for router_path in ("src/router/index.js", "src/router/index.ts"):
+            if router_path not in files:
+                continue
+            router_content = files[router_path]
+            normalized_content = router_content.replace("createWebHistory", "createWebHashHistory")
+            normalized_content = normalized_content.replace("createMemoryHistory", "createWebHashHistory")
+            files[router_path] = normalized_content
         return files
 
     def _ensure_store_bootstrap(self, main_entry_content: str) -> str:
