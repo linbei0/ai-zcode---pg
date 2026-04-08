@@ -7,6 +7,8 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aizcode.ai.AiCodeGenTypeRoutingService;
 import com.aizcode.ai.AiCodeGenTypeRoutingServiceFactory;
+import com.aizcode.ai.PromptOptimizerService;
+import com.aizcode.ai.PromptOptimizerServiceFactory;
 import com.aizcode.constant.AppConstant;
 import com.aizcode.core.AiCodeGeneratorFacade;
 import com.aizcode.core.builder.VueProjectBuilder;
@@ -16,10 +18,12 @@ import com.aizcode.exception.ErrorCode;
 import com.aizcode.exception.ThrowUtils;
 import com.aizcode.model.dto.app.AppAddRequest;
 import com.aizcode.model.dto.app.AppQueryRequest;
+import com.aizcode.model.dto.app.PromptOptimizeRequest;
 import com.aizcode.model.entity.User;
 import com.aizcode.model.enums.ChatHistoryMessageTypeEnum;
 import com.aizcode.model.enums.CodeGenTypeEnum;
 import com.aizcode.model.vo.AppVO;
+import com.aizcode.model.vo.PromptOptimizeResponse;
 import com.aizcode.model.vo.UserVO;
 import com.aizcode.monitor.MonitorContext;
 import com.aizcode.monitor.MonitorContextHolder;
@@ -65,6 +69,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private ScreenshotService screenshotService;
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
+    @Resource
+    private PromptOptimizerServiceFactory promptOptimizerServiceFactory;
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -195,6 +201,64 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             appVO.setUser(userVO);
             return appVO;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public PromptOptimizeResponse optimizePrompt(PromptOptimizeRequest promptOptimizeRequest, User loginUser) {
+        ThrowUtils.throwIf(promptOptimizeRequest == null, ErrorCode.PARAMS_ERROR, "优化请求不能为空");
+        String prompt = StrUtil.trim(promptOptimizeRequest.getPrompt());
+        ThrowUtils.throwIf(StrUtil.isBlank(prompt), ErrorCode.PARAMS_ERROR, "提示词不能为空");
+        String scene = StrUtil.trim(promptOptimizeRequest.getScene());
+        ThrowUtils.throwIf(!StrUtil.equalsAny(scene, "create_app", "chat"),
+                ErrorCode.PARAMS_ERROR, "优化场景不合法");
+        String hiddenContext = buildPromptOptimizeContext(scene, promptOptimizeRequest, loginUser);
+        String userMessage = StrUtil.format("""
+                场景：{}
+
+                隐藏上下文：
+                {}
+
+                用户原始需求：
+                {}
+
+                请输出结构化优化结果。
+                """, scene, hiddenContext, prompt);
+        PromptOptimizerService promptOptimizerService = promptOptimizerServiceFactory.createPromptOptimizerService();
+        PromptOptimizeResponse response = promptOptimizerService.optimizePrompt(userMessage);
+        ThrowUtils.throwIf(response == null || StrUtil.isBlank(response.getOptimizedPrompt()),
+                ErrorCode.SYSTEM_ERROR, "提示词优化失败，请稍后重试");
+        if (!StrUtil.equalsAny(response.getMode(), "basic", "detail")) {
+            response.setMode("basic");
+        }
+        response.setOptimizedPrompt(StrUtil.trim(response.getOptimizedPrompt()));
+        return response;
+    }
+
+    /**
+     * 构建提示词优化隐藏上下文
+     *
+     * @param scene 场景
+     * @param promptOptimizeRequest 优化请求
+     * @param loginUser 当前登录用户
+     * @return 隐藏上下文
+     */
+    private String buildPromptOptimizeContext(String scene, PromptOptimizeRequest promptOptimizeRequest, User loginUser) {
+        if (StrUtil.equals(scene, "create_app")) {
+            return "当前场景为创建新应用，请把需求整理成适合 AI-ZCode 首次生成网站/页面/工程的输入。";
+        }
+        Long appId = promptOptimizeRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "聊天场景必须提供有效的应用 ID");
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限优化该应用的提示词");
+        }
+        return StrUtil.format("""
+                当前场景为修改现有应用，请聚焦增量修改，不要重写整个项目。
+                当前应用：{}
+                初始需求：{}
+                代码生成类型：{}
+                """, app.getAppName(), app.getInitPrompt(), app.getCodeGenType());
     }
 
 

@@ -2,8 +2,10 @@ package com.aizcode.service;
 
 import com.aizcode.model.dto.app.AppAddRequest;
 import com.aizcode.model.dto.app.AppQueryRequest;
+import com.aizcode.model.dto.app.PromptOptimizeRequest;
 import com.aizcode.model.entity.User;
 import com.aizcode.model.vo.AppVO;
+import com.aizcode.model.vo.PromptOptimizeResponse;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.aizcode.model.entity.App;
@@ -54,6 +56,15 @@ public interface AppService extends IService<App> {
      * @return
      */
     Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    /**
+     * 优化提示词
+     *
+     * @param promptOptimizeRequest 优化请求
+     * @param loginUser 当前登录用户
+     * @return 优化结果
+     */
+    PromptOptimizeResponse optimizePrompt(PromptOptimizeRequest promptOptimizeRequest, User loginUser);
 
     /**
      * 部署应用

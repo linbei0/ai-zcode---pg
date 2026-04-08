@@ -15,6 +15,7 @@ import com.aizcode.exception.ThrowUtils;
 import com.aizcode.model.dto.app.*;
 import com.aizcode.model.entity.User;
 import com.aizcode.model.vo.AppVO;
+import com.aizcode.model.vo.PromptOptimizeResponse;
 import com.aizcode.ratelimiter.annotation.RateLimit;
 import com.aizcode.ratelimiter.enums.RateLimitType;
 import com.aizcode.service.ProjectDownloadService;
@@ -270,6 +271,23 @@ public class AppController {
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         // 获取封装类
         return ResultUtils.success(appService.getAppVO(app));
+    }
+
+    /**
+     * 优化提示词
+     *
+     * @param promptOptimizeRequest 优化请求
+     * @param request 请求
+     * @return 优化结果
+     */
+    @PostMapping("/prompt/optimize")
+    @RateLimit(limitType = RateLimitType.USER, rate = 10, rateInterval = 60, message = "提示词优化请求过于频繁，请稍后再试")
+    public BaseResponse<PromptOptimizeResponse> optimizePrompt(@RequestBody PromptOptimizeRequest promptOptimizeRequest,
+                                                               HttpServletRequest request) {
+        ThrowUtils.throwIf(promptOptimizeRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        PromptOptimizeResponse response = appService.optimizePrompt(promptOptimizeRequest, loginUser);
+        return ResultUtils.success(response);
     }
 
     /**
