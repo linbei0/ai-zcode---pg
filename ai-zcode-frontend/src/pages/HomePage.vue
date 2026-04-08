@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
+import { usePromptOptimizer } from '@/composables/usePromptOptimizer'
 import { getDeployUrl } from '@/config/backend'
 import AppCard from '@/components/AppCard.vue'
 
@@ -35,7 +36,38 @@ const setPrompt = (prompt: string) => {
   userPrompt.value = prompt
 }
 
-// 优化提示词功能已移除
+const {
+  isOptimizing,
+  canUndo: canUndoOptimization,
+  optimizePrompt,
+  undoOptimization,
+  clearOptimizationState,
+} = usePromptOptimizer(userPrompt, {
+  scene: 'create_app',
+})
+
+const ensureLoggedIn = async () => {
+  if (loginUserStore.loginUser.id) {
+    return true
+  }
+  message.warning('请先登录')
+  await router.push('/user/login')
+  return false
+}
+
+const handleOptimizePrompt = async () => {
+  if (!userPrompt.value.trim() || creating.value || isOptimizing.value) {
+    return
+  }
+  if (!(await ensureLoggedIn())) {
+    return
+  }
+  await optimizePrompt()
+}
+
+const handleUndoOptimization = () => {
+  undoOptimization()
+}
 
 // 创建应用
 const createApp = async () => {
@@ -44,9 +76,7 @@ const createApp = async () => {
     return
   }
 
-  if (!loginUserStore.loginUser.id) {
-    message.warning('请先登录')
-    await router.push('/user/login')
+  if (!(await ensureLoggedIn())) {
     return
   }
 
@@ -57,6 +87,7 @@ const createApp = async () => {
     })
 
     if (res.data.code === 0 && res.data.data) {
+      clearOptimizationState()
       message.success('应用创建成功')
       // 跳转到对话页面，确保ID是字符串类型
       const appId = String(res.data.data)
@@ -175,7 +206,20 @@ onMounted(() => {
           class="prompt-input"
         />
         <div class="input-actions">
-          <a-button type="primary" size="large" @click="createApp" :loading="creating">
+          <a-tooltip :title="canUndoOptimization ? '回退到优化前' : '优化提示词'">
+            <a-button
+              class="optimize-action-btn"
+              size="large"
+              @click="canUndoOptimization ? handleUndoOptimization() : handleOptimizePrompt()"
+              :loading="isOptimizing"
+              :disabled="!userPrompt.trim() || creating || isOptimizing"
+            >
+              <template #icon>
+                <span>{{ canUndoOptimization ? '↶' : '✨' }}</span>
+              </template>
+            </a-button>
+          </a-tooltip>
+          <a-button type="primary" size="large" @click="createApp" :loading="creating" :disabled="isOptimizing">
             <template #icon>
               <span>↑</span>
             </template>
@@ -432,7 +476,7 @@ onMounted(() => {
   border-radius: 20px;
   border: 2px solid rgba(255, 255, 255, 0.2);
   font-size: 18px;
-  padding: 24px 80px 24px 24px;
+  padding: 24px 136px 24px 24px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   box-shadow: 
@@ -481,6 +525,16 @@ onMounted(() => {
 .input-actions .ant-btn:hover {
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 12px 35px rgba(79, 172, 254, 0.6);
+}
+
+.input-actions .optimize-action-btn {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.18);
+}
+
+.input-actions .optimize-action-btn:hover {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
 }
 
 /* 快捷模板区域 */
@@ -634,7 +688,7 @@ onMounted(() => {
 
   .prompt-input {
     font-size: 16px;
-    padding: 20px 70px 20px 20px;
+    padding: 20px 124px 20px 20px;
   }
 
   .template-buttons {

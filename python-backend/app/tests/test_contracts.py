@@ -91,6 +91,24 @@ def test_testing_ai_gateway_routes_code_type() -> None:
     assert gateway.route_code_type("生成一个 Vue 后台系统") == "vue_project"
 
 
+def test_testing_ai_gateway_optimizes_prompt() -> None:
+    gateway = TestingAIGateway()
+
+    create_result = gateway.optimize_prompt("做一个博客", "create_app")
+    assert create_result["mode"] == "basic"
+    assert "产品类型" in create_result["optimizedPrompt"]
+    assert "做一个博客" in create_result["optimizedPrompt"]
+
+    chat_result = gateway.optimize_prompt(
+        "把首页按钮改成蓝色",
+        "chat",
+        {"appName": "博客站点", "initPrompt": "创建一个博客", "codeGenType": "vue_project"},
+    )
+    assert chat_result["mode"] == "detail"
+    assert "当前应用" in chat_result["optimizedPrompt"]
+    assert "把首页按钮改成蓝色" in chat_result["optimizedPrompt"]
+
+
 def test_app_crud_pagination_and_admin_views(tmp_path: Path) -> None:
     client = build_client(tmp_path)
     register_and_login(client)
@@ -179,6 +197,86 @@ def test_chat_generation_sse_persists_history_and_supports_preview_deploy_downlo
     assert "application/zip" in download_res.headers["content-type"]
 
 
+def test_prompt_optimize_endpoint_returns_optimized_prompt_without_history_mutation(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+    register_and_login(client, user_account="optimizer")
+
+    add_res = client.post("/api/app/add", json={"initPrompt": "生成一个极简 HTML 页面"})
+    app_id = add_res.json()["data"]
+
+    optimize_res = client.post(
+        "/api/app/prompt/optimize",
+        json={"prompt": "做一个个人博客网站", "scene": "create_app"},
+    )
+    assert optimize_res.status_code == 200
+    assert optimize_res.json()["code"] == 0
+    optimize_data = optimize_res.json()["data"]
+    assert optimize_data["mode"] == "basic"
+    assert "做一个个人博客网站" in optimize_data["optimizedPrompt"]
+
+    chat_optimize_res = client.post(
+        "/api/app/prompt/optimize",
+        json={"prompt": "把首页按钮改成蓝色并更现代", "scene": "chat", "appId": app_id},
+    )
+    assert chat_optimize_res.status_code == 200
+    assert chat_optimize_res.json()["code"] == 0
+    chat_optimize_data = chat_optimize_res.json()["data"]
+    assert chat_optimize_data["mode"] == "detail"
+    assert "当前应用" in chat_optimize_data["optimizedPrompt"]
+
+    history_res = client.get(f"/api/chatHistory/app/{app_id}", params={"pageSize": 10})
+    assert history_res.status_code == 200
+    assert history_res.json()["code"] == 0
+    assert history_res.json()["data"]["records"] == []
+
+    app_res = client.get("/api/app/get/vo", params={"id": app_id})
+    assert app_res.status_code == 200
+    assert app_res.json()["code"] == 0
+    assert app_res.json()["data"]["initPrompt"] == "生成一个极简 HTML 页面"
+
+
+def test_prompt_optimize_requires_login(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+
+    res = client.post(
+        "/api/app/prompt/optimize",
+        json={"prompt": "做一个个人博客网站", "scene": "create_app"},
+    )
+
+    assert res.status_code == 200
+    assert res.json()["code"] == 40100
+
+
+def test_prompt_optimize_rejects_blank_prompt(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+    register_and_login(client, user_account="blankPromptUser")
+
+    res = client.post(
+        "/api/app/prompt/optimize",
+        json={"prompt": "   ", "scene": "create_app"},
+    )
+
+    assert res.status_code == 200
+    assert res.json()["code"] == 40000
+
+
+def test_prompt_optimize_chat_scope_requires_owner(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+    register_and_login(client, user_account="ownerA")
+    add_res = client.post("/api/app/add", json={"initPrompt": "生成一个极简 HTML 页面"})
+    app_id = add_res.json()["data"]
+    client.post("/api/user/logout")
+    register_and_login(client, user_account="ownerB")
+
+    res = client.post(
+        "/api/app/prompt/optimize",
+        json={"prompt": "改一下首页布局", "scene": "chat", "appId": app_id},
+    )
+
+    assert res.status_code == 200
+    assert res.json()["code"] == 40101
+
+
 def test_workflow_execute_and_stream_endpoints(tmp_path: Path) -> None:
     client = build_client(tmp_path)
 
@@ -221,6 +319,28 @@ def test_chat_endpoint_rate_limit_returns_business_error_event(tmp_path: Path) -
     assert limited_res.status_code == 200
     assert "event: business-error" in limited_res.text
     assert '"code":42900' in limited_res.text or '"code":42900'.replace(" ", "") in limited_res.text
+
+
+def test_prompt_optimize_endpoint_rate_limit_returns_business_error(tmp_path: Path) -> None:
+    client = build_client(tmp_path)
+    client.app.state.settings.prompt_optimize_rate_limit = 2
+    client.app.state.settings.prompt_optimize_rate_interval_seconds = 60
+    register_and_login(client, user_account="optLimited")
+
+    for _ in range(2):
+        ok_res = client.post(
+            "/api/app/prompt/optimize",
+            json={"prompt": "做一个营销落地页", "scene": "create_app"},
+        )
+        assert ok_res.status_code == 200
+        assert ok_res.json()["code"] == 0
+
+    limited_res = client.post(
+        "/api/app/prompt/optimize",
+        json={"prompt": "第三次优化应该被限流", "scene": "create_app"},
+    )
+    assert limited_res.status_code == 200
+    assert limited_res.json()["code"] == 42900
 
 
 def test_deploy_updates_cover_after_screenshot(tmp_path: Path) -> None:

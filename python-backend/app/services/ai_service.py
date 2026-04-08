@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from typing import Literal
+from typing import Any, Literal
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -12,17 +12,42 @@ from pydantic import BaseModel
 from app.ai.prompts import (
     HTML_SYSTEM_PROMPT,
     MULTI_FILE_SYSTEM_PROMPT,
+    PROMPT_OPTIMIZER_SYSTEM_PROMPT,
     ROUTING_SYSTEM_PROMPT,
     VUE_PROJECT_SYSTEM_PROMPT,
 )
 from app.core.config import Settings
 from app.core.exceptions import BusinessException, ErrorCode
+from app.schemas.app import PromptOptimizeMode, PromptOptimizeScene
 
 CodeGenType = Literal["html", "multi_file", "vue_project"]
 
 
 class CodeTypeDecision(BaseModel):
     code_gen_type: CodeGenType
+
+
+class PromptOptimizationResult(BaseModel):
+    optimized_prompt: str
+    mode: PromptOptimizeMode
+
+
+def build_prompt_optimizer_context(scene: PromptOptimizeScene, app_context: dict[str, Any] | None = None) -> str:
+    if scene == "create_app":
+        return "当前场景：创建新应用。请把用户想法整理成适合 AI-ZCode 首次生成网站/页面/工程的输入。"
+
+    if not app_context:
+        return "当前场景：修改现有应用。请聚焦本次改动，不要把需求扩展成整站重做。"
+
+    app_name = app_context.get("appName") or "未命名应用"
+    init_prompt = app_context.get("initPrompt") or "未提供"
+    code_gen_type = app_context.get("codeGenType") or "未提供"
+    return (
+        "当前场景：修改现有应用。请聚焦增量修改，不要重写整个项目。\n"
+        f"当前应用：{app_name}\n"
+        f"初始需求：{init_prompt}\n"
+        f"代码生成类型：{code_gen_type}"
+    )
 
 
 def should_disable_thinking_for_model(model_name: str) -> bool:
@@ -74,6 +99,14 @@ class AIGateway(ABC):
     def route_code_type(self, init_prompt: str) -> CodeGenType: ...
 
     @abstractmethod
+    def optimize_prompt(
+        self,
+        prompt: str,
+        scene: PromptOptimizeScene,
+        app_context: dict[str, Any] | None = None,
+    ) -> dict[str, str]: ...
+
+    @abstractmethod
     async def stream_generate(
         self,
         code_gen_type: CodeGenType,
@@ -90,6 +123,31 @@ class TestingAIGateway(AIGateway):
         if "js" in lower or "javascript" in lower or "交互" in init_prompt:
             return "multi_file"
         return "html"
+
+    def optimize_prompt(
+        self,
+        prompt: str,
+        scene: PromptOptimizeScene,
+        app_context: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
+        normalized_prompt = prompt.strip()
+        if scene == "create_app":
+            return {
+                "optimizedPrompt": (
+                    f"请围绕以下需求生成应用，并明确产品类型、核心页面、关键功能、视觉风格、"
+                    f"响应式要求与目标用户：{normalized_prompt}"
+                ),
+                "mode": "basic",
+            }
+
+        context_text = build_prompt_optimizer_context(scene, app_context)
+        return {
+            "optimizedPrompt": (
+                f"{context_text}\n请仅在当前应用基础上完成以下修改，说明影响范围、保留不变部分、"
+                f"UI/交互/文案/样式约束：{normalized_prompt}"
+            ),
+            "mode": "detail",
+        }
 
     async def stream_generate(
         self,
@@ -179,6 +237,40 @@ class LangChainAIGateway(AIGateway):
         decision = (prompt | structured_llm).invoke({"init_prompt": init_prompt})
         return decision.code_gen_type
 
+    def optimize_prompt(
+        self,
+        prompt: str,
+        scene: PromptOptimizeScene,
+        app_context: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
+        structured_llm = self.routing_llm.with_structured_output(
+            PromptOptimizationResult,
+            method="function_calling",
+        )
+        prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", PROMPT_OPTIMIZER_SYSTEM_PROMPT),
+                (
+                    "human",
+                    "场景：{scene}\n"
+                    "隐藏上下文：\n{optimizer_context}\n\n"
+                    "用户原始需求：\n{prompt}\n\n"
+                    "请返回结构化结果。",
+                ),
+            ]
+        )
+        result = (prompt_template | structured_llm).invoke(
+            {
+                "scene": scene,
+                "optimizer_context": build_prompt_optimizer_context(scene, app_context),
+                "prompt": prompt,
+            }
+        )
+        return {
+            "optimizedPrompt": result.optimized_prompt.strip(),
+            "mode": result.mode,
+        }
+
     async def stream_generate(
         self,
         code_gen_type: CodeGenType,
@@ -203,6 +295,14 @@ class LangChainAIGateway(AIGateway):
 
 class DisabledAIGateway(AIGateway):
     def route_code_type(self, init_prompt: str) -> CodeGenType:
+        raise BusinessException(ErrorCode.SYSTEM_ERROR, "未配置 OPENAI_API_KEY，无法启用 Python AI 能力")
+
+    def optimize_prompt(
+        self,
+        prompt: str,
+        scene: PromptOptimizeScene,
+        app_context: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
         raise BusinessException(ErrorCode.SYSTEM_ERROR, "未配置 OPENAI_API_KEY，无法启用 Python AI 能力")
 
     async def stream_generate(

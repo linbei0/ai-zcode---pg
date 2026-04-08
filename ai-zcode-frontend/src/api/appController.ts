@@ -14,6 +14,21 @@ export async function addApp(body: API.AppAddRequest, options?: { [key: string]:
   })
 }
 
+/** 此处后端没有提供注释 POST /app/prompt/optimize */
+export async function optimizeAppPrompt(
+  body: API.PromptOptimizeRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePromptOptimizeResponse>('/app/prompt/optimize', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 POST /app/admin/delete */
 export async function deleteAppByAdmin(body: API.DeleteRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/app/admin/delete', {

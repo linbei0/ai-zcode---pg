@@ -16,6 +16,7 @@ from app.schemas.app import (
     AppDeployRequest,
     AppQueryRequest,
     AppUpdateRequest,
+    PromptOptimizeRequest,
 )
 from app.schemas.common import DeleteRequest
 from app.services.app_service import AppService
@@ -144,6 +145,24 @@ def get_app_vo_by_admin(id: int, request: Request, _=Depends(require_admin)):
     try:
         service = _service(request, db)
         return success(service.get_app_vo(service.get_app_entity(id)))
+    finally:
+        db.close()
+
+
+@router.post("/prompt/optimize")
+def optimize_prompt(payload: PromptOptimizeRequest, request: Request, _=Depends(get_current_user)):
+    db = next(_db(request))
+    try:
+        login_user = get_current_user(request)
+        key = f"py_rate_limit:prompt-optimize:user:{login_user.id}"
+        allowed = request.app.state.rate_limiter.try_acquire(
+            key,
+            request.app.state.settings.prompt_optimize_rate_limit,
+            request.app.state.settings.prompt_optimize_rate_interval_seconds,
+        )
+        if not allowed:
+            raise BusinessException(ErrorCode.TOO_MANY_REQUEST, "提示词优化请求过于频繁，请稍后再试")
+        return success(_service(request, db).optimize_prompt(payload, login_user))
     finally:
         db.close()
 

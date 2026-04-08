@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel
+
+PromptOptimizeScene = Literal["create_app", "chat"]
+PromptOptimizeMode = Literal["basic", "detail"]
 
 
 class AppAddRequest(BaseModel):
@@ -36,3 +41,14 @@ class AppQueryRequest(BaseModel):
 
 class AppDeployRequest(BaseModel):
     appId: int
+
+
+class PromptOptimizeRequest(BaseModel):
+    prompt: str
+    scene: PromptOptimizeScene
+    appId: int | None = None
+
+
+class PromptOptimizeResponse(BaseModel):
+    optimizedPrompt: str
+    mode: PromptOptimizeMode

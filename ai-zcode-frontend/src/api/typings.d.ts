@@ -34,6 +34,21 @@ declare namespace API {
     appName?: string
   }
 
+  type PromptOptimizeMode = 'basic' | 'detail'
+
+  type PromptOptimizeScene = 'create_app' | 'chat'
+
+  type PromptOptimizeRequest = {
+    prompt: string
+    scene: PromptOptimizeScene
+    appId?: number
+  }
+
+  type PromptOptimizeResponse = {
+    optimizedPrompt?: string
+    mode?: PromptOptimizeMode
+  }
+
   type AppVO = {
     id?: number
     appName?: string
@@ -88,6 +103,12 @@ declare namespace API {
   type BaseResponsePageUserVO = {
     code?: number
     data?: PageUserVO
+    message?: string
+  }
+
+  type BaseResponsePromptOptimizeResponse = {
+    code?: number
+    data?: PromptOptimizeResponse
     message?: string
   }
 

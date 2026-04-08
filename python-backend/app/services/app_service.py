@@ -15,7 +15,14 @@ from app.core.exceptions import BusinessException, ErrorCode
 from app.models.app import App
 from app.models.user import User
 from app.repositories.app_repository import AppRepository
-from app.schemas.app import AppAddRequest, AppAdminUpdateRequest, AppQueryRequest, AppUpdateRequest
+from app.schemas.app import (
+    AppAddRequest,
+    AppAdminUpdateRequest,
+    AppQueryRequest,
+    AppUpdateRequest,
+    PromptOptimizeRequest,
+    PromptOptimizeResponse,
+)
 from app.services.ai_service import AIGateway
 from app.services.chat_history_service import ChatHistoryService
 from app.services.screenshot_service import ScreenshotService
@@ -157,6 +164,30 @@ class AppService:
         if cache_key and self.cache_store and self.settings:
             self.cache_store.set_json(cache_key, {"records": payload, "total": total}, self.settings.good_app_cache_ttl_seconds)
         return payload, total
+
+    def optimize_prompt(self, payload: PromptOptimizeRequest, login_user: User) -> PromptOptimizeResponse:
+        normalized_prompt = payload.prompt.strip() if payload.prompt else ""
+        if not normalized_prompt:
+            raise BusinessException(ErrorCode.PARAMS_ERROR, "提示词不能为空")
+
+        app_context: dict[str, Any] | None = None
+        if payload.scene == "chat":
+            if not payload.appId or payload.appId <= 0:
+                raise BusinessException(ErrorCode.PARAMS_ERROR, "聊天场景必须提供有效的应用 ID")
+            app = self.get_app_entity(payload.appId)
+            if app.user_id != login_user.id:
+                raise BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限优化该应用的提示词")
+            app_context = {
+                "appName": app.app_name,
+                "initPrompt": app.init_prompt,
+                "codeGenType": app.code_gen_type,
+            }
+
+        result = self.ai_gateway.optimize_prompt(normalized_prompt, payload.scene, app_context)
+        optimized_prompt = result["optimizedPrompt"].strip()
+        if not optimized_prompt:
+            raise BusinessException(ErrorCode.SYSTEM_ERROR, "提示词优化失败，请稍后重试")
+        return PromptOptimizeResponse(optimizedPrompt=optimized_prompt, mode=result["mode"])
 
     async def chat_to_generate_code(self, app_id: int, message: str, login_user: User):
         if app_id <= 0:

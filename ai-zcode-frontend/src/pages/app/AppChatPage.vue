@@ -131,11 +131,23 @@
               :disabled="isGenerating"
             />
             <div class="input-actions">
+              <a-tooltip :title="canUndoOptimization ? '回退到优化前' : '优化提示词'">
+                <a-button
+                  class="optimize-action-btn"
+                  @click="canUndoOptimization ? handleUndoOptimization() : handleOptimizePrompt()"
+                  :loading="isOptimizing"
+                  :disabled="(!canUndoOptimization && !canOptimizePrompt) || !isOwner"
+                >
+                  <template #icon>
+                    <span>{{ canUndoOptimization ? '↶' : '✨' }}</span>
+                  </template>
+                </a-button>
+              </a-tooltip>
               <a-button
                 type="primary"
                 @click="sendMessage"
                 :loading="isGenerating"
-                :disabled="!isOwner"
+                :disabled="!isOwner || isOptimizing"
               >
                 <template #icon>
                   <SendOutlined />
@@ -219,6 +231,7 @@ import {
   deployApp as deployAppApi,
   deleteApp as deleteAppApi,
 } from '@/api/appController'
+import { usePromptOptimizer } from '@/composables/usePromptOptimizer'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
@@ -259,6 +272,16 @@ const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
+const {
+  isOptimizing,
+  canUndo: canUndoOptimization,
+  optimizePrompt,
+  undoOptimization,
+  clearOptimizationState,
+} = usePromptOptimizer(userInput, {
+  scene: 'chat',
+  getAppId: () => (appId.value ? Number(appId.value) : undefined),
+})
 
 // 对话历史相关
 const loadingHistory = ref(false)
@@ -290,6 +313,10 @@ const visualEditor = new VisualEditor({
 // 权限相关
 const isOwner = computed(() => {
   return appInfo.value?.userId === loginUserStore.loginUser.id
+})
+
+const canOptimizePrompt = computed(() => {
+  return !!userInput.value.trim() && !isGenerating.value && !isOptimizing.value && isOwner.value
 })
 
 const isAdmin = computed(() => {
@@ -446,6 +473,7 @@ const sendMessage = async () => {
     }
     message += elementContext
   }
+  clearOptimizationState()
   userInput.value = ''
   // 添加用户消息（包含元素信息）
   messages.value.push({
@@ -475,6 +503,17 @@ const sendMessage = async () => {
   // 开始生成
   isGenerating.value = true
   await generateCode(message, aiMessageIndex)
+}
+
+const handleOptimizePrompt = async () => {
+  if (!canOptimizePrompt.value) {
+    return
+  }
+  await optimizePrompt()
+}
+
+const handleUndoOptimization = () => {
+  undoOptimization()
 }
 
 // 生成代码 - 使用 EventSource 处理流式响应
@@ -934,13 +973,22 @@ onUnmounted(() => {
 }
 
 .input-wrapper .ant-input {
-  padding-right: 50px;
+  padding-right: 96px;
 }
 
 .input-actions {
   position: absolute;
   bottom: 8px;
   right: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.optimize-action-btn {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #dbeafe;
 }
 
 /* 右侧预览区域 */

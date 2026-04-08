@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     app_vo_cache_ttl_seconds: int = 300
     chat_rate_limit: int = 5
     chat_rate_interval_seconds: int = 60
+    prompt_optimize_rate_limit: int = 10
+    prompt_optimize_rate_interval_seconds: int = 60
     screenshot_width: int = 1600
     screenshot_height: int = 900
     screenshot_timeout_seconds: int = 30
