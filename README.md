@@ -135,7 +135,7 @@ ai-zcode - pg/
 创建 PostgreSQL 数据库后，执行：
 
 ```sql
-\i 'E:/java-project/ai-zcode - pg/sql/create_table_postgresql.sql'
+\i 'sql/create_table_postgresql.sql'
 ```
 
 如需参考迁移说明，可查看：
